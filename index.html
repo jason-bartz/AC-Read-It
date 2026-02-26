@@ -643,10 +643,15 @@
           body: JSON.stringify({ image: imageDataUrl }),
         });
 
-        if (!response.ok) throw new Error('API error');
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(JSON.stringify(errData.debug || { status: response.status }));
+        }
 
         const data = await response.json();
         const text = (data.text || '').replace(/\s+/g, ' ').trim();
+        // Debug: log raw response
+        console.log('OCR response:', JSON.stringify(data));
 
         setScanningUI(false);
 
@@ -664,7 +669,8 @@
 
       } catch (e) {
         setScanningUI(false);
-        showBubble('\uD83D\uDE05 Oops! Try again!');
+        console.error('Scan error:', e);
+        showBubble('\uD83D\uDE05 Error: ' + (e.message || 'Try again!').substring(0, 120));
         document.getElementById('statusDot').className = 'status-dot';
       }
 

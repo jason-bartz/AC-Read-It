@@ -1,15 +1,14 @@
 const AI_GATEWAY_URL = 'https://ai-gateway.vercel.sh/v1/chat/completions';
 const MODEL = 'meta/llama-4-scout';
 
-const SYSTEM_PROMPT = `You are an OCR text extraction tool for Animal Crossing: New Leaf on Nintendo 3DS. Your ONLY job is to read and transcribe the visible dialogue text in the provided screenshot image.
+const SYSTEM_PROMPT = `You are a text extraction tool. You read text visible in photos of screens, especially Animal Crossing: New Leaf on Nintendo 3DS.
 
 RULES:
-- Output ONLY the dialogue text you see in the image, nothing else
-- If a character name label is visible (like "Isabelle" or "Tom Nook"), include it on its own line before the dialogue, followed by a colon
-- Do not add any commentary, explanation, or description of the image
-- Do not describe UI elements, characters, or backgrounds
-- If no text is visible, respond with exactly: NO_TEXT_FOUND
-- Correct obvious OCR-style errors using your knowledge of Animal Crossing vocabulary
+- Read and output ALL visible text in the image
+- If a character name label is visible (like "Isabelle" or "Tom Nook"), put it first followed by a colon, then the dialogue
+- Do not describe the image — only output the text you can read
+- If you truly cannot see any text at all, respond with exactly: NO_TEXT_FOUND
+- Use your knowledge of Animal Crossing vocabulary to correct any ambiguous characters
 
 ANIMAL CROSSING VOCABULARY CONTEXT:
 Characters: Isabelle, Tom Nook, Timmy, Tommy, Blathers, Celeste, Kicks, Reese, Cyrus, Digby, Lyle, Lottie, K.K. Slider, Brewster, Sable, Mabel, Labelle, Gracie, Harriet, Katrina, Redd, Leif, Wendell, Pascal, Gulliver, Pete, Pelly, Phyllis, Tortimer, Kapp'n, Lloid, Dr. Shrunk, Rover, Porter, Resetti, Don Resetti, Luna, Zipper, Jack, Franklin, Jingle, Pave, Joan, Nat, Chip, Sahara, Wisp, Katie, Booker, Copper
@@ -91,13 +90,14 @@ module.exports = async (req, res) => {
     }
 
     const data = await response.json();
-    const text = (data.choices?.[0]?.message?.content || '').trim();
+    const rawContent = data.choices?.[0]?.message?.content || '';
+    const text = rawContent.trim();
 
     if (text === 'NO_TEXT_FOUND' || !text) {
-      return res.status(200).json({ text: '' });
+      return res.status(200).json({ text: '', debug: { rawContent, model: data.model } });
     }
 
-    return res.status(200).json({ text });
+    return res.status(200).json({ text, debug: { rawContent, model: data.model } });
   } catch (err) {
     console.error('OCR function error:', err);
     return res.status(500).json({
