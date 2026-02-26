@@ -54,7 +54,8 @@
     }
 
     body {
-      background: var(--cream);
+      background: url('grass-wallpaper.webp') center / cover no-repeat fixed;
+      background-color: var(--cream);
       font-family: 'Nunito', sans-serif;
       display: flex;
       flex-direction: column;
@@ -64,13 +65,24 @@
 
     /* ─── HEADER ─────────────────────────────── */
     .header {
-      background: linear-gradient(180deg, #8fd490 0%, var(--green) 100%);
+      background:
+        linear-gradient(180deg,
+          rgba(255,255,255,0.18) 0%,
+          rgba(200,160,100,0.05) 30%,
+          rgba(0,0,0,0.12) 100%),
+        linear-gradient(90deg,
+          #a07040 0%, #c49060 12%, #daa870 25%, #c49060 38%,
+          #a07040 50%, #c49060 62%, #daa870 75%, #c49060 88%, #a07040 100%);
       padding: 10px 16px 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-bottom: 5px solid var(--green-dark);
-      box-shadow: 0 3px 10px rgba(61,122,68,0.3);
+      border-bottom: 5px solid #5a3518;
+      border-top: 3px solid #dab880;
+      box-shadow:
+        0 4px 8px rgba(0,0,0,0.35),
+        inset 0 1px 0 rgba(255,255,255,0.25),
+        inset 0 -2px 4px rgba(0,0,0,0.15);
       flex-shrink: 0;
       position: relative;
       z-index: 10;
@@ -79,8 +91,14 @@
     .header-title {
       font-family: 'Fredoka One', cursive;
       font-size: clamp(1.5rem, 5vw, 2rem);
-      color: var(--white);
-      text-shadow: 2px 3px 0px var(--green-dark), 0 0 20px rgba(255,255,255,0.3);
+      color: #f8d830;
+      text-shadow:
+        -2px -2px 0 #7a4f2c,
+         2px -2px 0 #7a4f2c,
+        -2px  2px 0 #7a4f2c,
+         2px  2px 0 #7a4f2c,
+         0   3px 0  #5a3518,
+         0   4px 6px rgba(0,0,0,0.3);
       letter-spacing: 2px;
     }
 
@@ -351,7 +369,7 @@
 
     /* ─── CONTROLS DOCK ──────────────────────── */
     .controls {
-      background: linear-gradient(180deg, var(--cream) 0%, #e8dfc0 100%);
+      background: linear-gradient(180deg, rgba(245,239,213,0.92) 0%, rgba(232,223,192,0.95) 100%);
       border-top: 4px solid var(--brown-light);
       padding: 10px 24px 16px;
       display: flex;
@@ -398,6 +416,16 @@
       border-color: #aaa;
       box-shadow: 0 4px 0 #aaa;
       cursor: not-allowed;
+    }
+
+    .btn-scan.scanning {
+      background: #f08080;
+      border-color: #a04040;
+      box-shadow: 0 7px 0 #a04040, 0 10px 20px rgba(0,0,0,0.15);
+    }
+
+    .btn-scan.scanning:active {
+      box-shadow: 0 2px 0 #a04040;
     }
 
     /* ─── SPEAK BUTTON ───────────────────────── */
@@ -580,6 +608,7 @@
     let stream         = null;
     let recognizedText = '';
     let isSpeaking     = false;
+    let scanController = null;  // AbortController for in-flight OCR
 
     // ── Voice selection (priority order) ────────────────
     function pickVoice() {
@@ -627,8 +656,29 @@
       }
     }
 
+    // ── Cancel in-flight scan ────────────────────────────
+    function cancelScan() {
+      if (scanController) {
+        scanController.abort();
+        scanController = null;
+      }
+      setScanningUI(false);
+
+      // Unfreeze: reopen viewfinder
+      document.getElementById('canvas').classList.remove('frozen');
+      document.getElementById('video').style.display = 'block';
+
+      document.getElementById('statusDot').className = 'status-dot ready';
+    }
+
     // ── Capture & OCR (via Vercel AI Gateway) ──────────
     async function captureAndScan() {
+      // If already scanning, cancel it
+      if (scanController) {
+        cancelScan();
+        return;
+      }
+
       const video = document.getElementById('video');
 
       if (!stream || !video.videoWidth) {
@@ -648,7 +698,7 @@
       document.getElementById('canvas').classList.remove('frozen');
       video.style.display = 'block';
 
-      // Show scanning overlay
+      // Show scanning overlay (scan button becomes cancel button)
       setScanningUI(true);
 
       // Capture only the visible (cropped) portion of the video
@@ -689,11 +739,15 @@
       // Export as JPEG for reasonable payload size
       const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
+      // Create abort controller for this scan
+      scanController = new AbortController();
+
       try {
         const response = await fetch('/api/ocr', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image: imageDataUrl }),
+          signal: scanController.signal,
         });
 
         if (!response.ok) {
@@ -708,6 +762,10 @@
 
         setScanningUI(false);
 
+        // Unfreeze: reopen viewfinder for immediate next photo
+        document.getElementById('canvas').classList.remove('frozen');
+        video.style.display = 'block';
+
         if (text && text.length > 1) {
           recognizedText = text;
           setFound(true);
@@ -721,13 +779,24 @@
         }
 
       } catch (e) {
+        // If aborted by user, just return silently (cancelScan already cleaned up)
+        if (e.name === 'AbortError') {
+          scanController = null;
+          return;
+        }
+
         setScanningUI(false);
         console.error('Scan error:', e);
         showBubble('\uD83D\uDE05 Error: ' + (e.message || 'Try again!').substring(0, 120));
         document.getElementById('statusDot').className = 'status-dot';
+
+        // Unfreeze on error too
+        document.getElementById('canvas').classList.remove('frozen');
+        video.style.display = 'block';
       }
 
-      setRetryActive(true);
+      scanController = null;
+      setRetryActive(false);
     }
 
     // ── Speak ───────────────────────────────────────────
@@ -796,9 +865,16 @@
     }
 
     // ── UI Helpers ──────────────────────────────────────
+    const cameraSVG = '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+    const cancelSVG = '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="3" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
+
     function setScanningUI(on) {
       document.getElementById('scanOverlay').classList.toggle('visible', on);
-      document.getElementById('scanBtn').disabled = on;
+      const scanBtn = document.getElementById('scanBtn');
+      // Keep button enabled so user can cancel — swap icon
+      scanBtn.disabled = false;
+      scanBtn.innerHTML = on ? cancelSVG : cameraSVG;
+      scanBtn.classList.toggle('scanning', on);
       document.getElementById('statusDot').className = on ? 'status-dot scanning' : 'status-dot ready';
     }
 
