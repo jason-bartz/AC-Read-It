@@ -84,7 +84,10 @@ module.exports = async (req, res) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('AI Gateway error:', response.status, errorText);
-      return res.status(502).json({ error: 'AI service unavailable' });
+      return res.status(502).json({
+        error: 'AI service unavailable',
+        debug: { status: response.status, detail: errorText.substring(0, 500) }
+      });
     }
 
     const data = await response.json();
@@ -97,6 +100,9 @@ module.exports = async (req, res) => {
     return res.status(200).json({ text });
   } catch (err) {
     console.error('OCR function error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({
+      error: 'Internal server error',
+      debug: { message: err.message }
+    });
   }
 };
