@@ -258,38 +258,14 @@
       width: 100%;
       flex-shrink: 0;
       position: relative;
-      padding: 4px 8px;
       display: none;
       animation: pop-in 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      background: url('dialogue-box.svg') center / 100% 100% no-repeat;
+      padding: 22% 14% 14% 14%;
+      min-height: 100px;
     }
 
     .ac-dialog.visible { display: block; }
-
-    /* Outer shape (border) */
-    .ac-dialog-outer {
-      background: var(--brown);
-      border-radius: 50% / 28%;
-      padding: 4px;
-    }
-
-    /* Inner shape (fill) */
-    .ac-dialog-inner {
-      background: linear-gradient(180deg, #fffef5 0%, #f5eed0 100%);
-      border-radius: 50% / 26%;
-      padding: 18px 28px 22px;
-      position: relative;
-    }
-
-    /* Decorative inner border (AC style) */
-    .ac-dialog-inner::before {
-      content: '';
-      position: absolute;
-      inset: 6px 14px;
-      border: 2.5px solid var(--brown-light);
-      border-radius: 50% / 30%;
-      pointer-events: none;
-      opacity: 0.35;
-    }
 
     .ac-dialog-text {
       font-size: 1rem;
@@ -299,14 +275,12 @@
       text-align: center;
       max-height: 80px;
       overflow-y: auto;
-      position: relative;
-      z-index: 1;
     }
 
     /* Advance arrow */
     .ac-dialog-arrow {
       position: absolute;
-      bottom: 10px;
+      bottom: 16%;
       right: 22%;
       width: 0;
       height: 0;
@@ -314,7 +288,6 @@
       border-right: 6px solid transparent;
       border-top: 7px solid var(--brown-light);
       animation: bounce-arrow 1s ease-in-out infinite;
-      z-index: 1;
     }
 
     @keyframes bounce-arrow {
@@ -326,23 +299,6 @@
       from { transform: scale(0.85); opacity: 0; }
       to   { transform: scale(1);    opacity: 1; }
     }
-
-    /* ─── BOTTOM GRASS STRIP ─────────────────── */
-    .grass-strip {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 46px;
-      background: linear-gradient(180deg, #74b87a 0%, var(--green-dark) 100%);
-      display: flex;
-      align-items: center;
-      justify-content: space-around;
-      padding: 0 16px;
-      pointer-events: none;
-    }
-
-    .grass-item { font-size: 1.3rem; line-height: 1; }
 
     /* ─── STATUS DOT ─────────────────────────── */
     .status-dot {
@@ -565,27 +521,12 @@
         <div class="scan-label">Reading...</div>
       </div>
 
-      <!-- Grass strip decoration -->
-      <div class="grass-strip">
-        <span class="grass-item">🌸</span>
-        <span class="grass-item">🌻</span>
-        <span class="grass-item">🍄</span>
-        <span class="grass-item">🌺</span>
-        <span class="grass-item">🌼</span>
-        <span class="grass-item">🌷</span>
-        <span class="grass-item">🌸</span>
-      </div>
-
     </div>
 
     <!-- AC Dialog Box (below camera) -->
     <div class="ac-dialog" id="resultBubble">
-      <div class="ac-dialog-outer">
-        <div class="ac-dialog-inner">
-          <div class="ac-dialog-text" id="resultText"></div>
-          <div class="ac-dialog-arrow"></div>
-        </div>
-      </div>
+      <div class="ac-dialog-text" id="resultText"></div>
+      <div class="ac-dialog-arrow"></div>
     </div>
   </div>
 
@@ -604,6 +545,63 @@
   </div>
 
   <script>
+    // ── Sound Effects (Web Audio API) ─────────────────────
+    let audioCtx = null;
+
+    function getAudioCtx() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playTone(freq, duration, type, vol, detune) {
+      const ctx = getAudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.value = freq;
+      if (detune) osc.detune.value = detune;
+      gain.gain.setValueAtTime(vol || 0.25, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + duration);
+    }
+
+    // Camera shutter — quick two-note chirp (like AC menu select)
+    function sfxShutter() {
+      playTone(880, 0.08, 'sine', 0.2);
+      setTimeout(() => playTone(1175, 0.12, 'sine', 0.25), 60);
+    }
+
+    // Cancel — soft descending tone
+    function sfxCancel() {
+      playTone(660, 0.1, 'triangle', 0.18);
+      setTimeout(() => playTone(440, 0.15, 'triangle', 0.15), 80);
+    }
+
+    // Retry — gentle rising boop
+    function sfxRetry() {
+      playTone(523, 0.08, 'sine', 0.18);
+      setTimeout(() => playTone(659, 0.1, 'sine', 0.2), 70);
+    }
+
+    // Speak — cheerful three-note chime (like AC dialogue start)
+    function sfxSpeak() {
+      playTone(784, 0.1, 'sine', 0.2);
+      setTimeout(() => playTone(988, 0.1, 'sine', 0.22), 80);
+      setTimeout(() => playTone(1175, 0.15, 'sine', 0.18), 170);
+    }
+
+    // Found text — success jingle
+    function sfxFound() {
+      playTone(659, 0.1, 'sine', 0.2);
+      setTimeout(() => playTone(784, 0.1, 'sine', 0.2), 100);
+      setTimeout(() => playTone(988, 0.1, 'sine', 0.22), 200);
+      setTimeout(() => playTone(1319, 0.2, 'sine', 0.25), 300);
+    }
+
     // ── State ────────────────────────────────────────────
     let stream         = null;
     let recognizedText = '';
@@ -658,6 +656,7 @@
 
     // ── Cancel in-flight scan ────────────────────────────
     function cancelScan() {
+      sfxCancel();
       if (scanController) {
         scanController.abort();
         scanController = null;
@@ -699,6 +698,7 @@
       video.style.display = 'block';
 
       // Show scanning overlay (scan button becomes cancel button)
+      sfxShutter();
       setScanningUI(true);
 
       // Capture only the visible (cropped) portion of the video
@@ -771,6 +771,7 @@
           setFound(true);
           showBubble(text.length > 200 ? text.substring(0, 200) + '\u2026' : text);
           setSpeakState('active');
+          sfxFound();
           spawnConfetti();
           document.getElementById('statusDot').className = 'status-dot ready';
         } else {
@@ -805,6 +806,7 @@
 
       // Tap while speaking → cancel and return to found state
       if (isSpeaking) {
+        sfxCancel();
         cancelSpeech();
         setSpeakState('active');
         document.getElementById('statusDot').className = 'status-dot ready';
@@ -813,6 +815,9 @@
 
       // iOS requires cancel before new utterance
       window.speechSynthesis.cancel();
+
+      // Play speak sound
+      sfxSpeak();
 
       // iOS: must fire speech inside a user gesture with short delay
       setTimeout(() => {
@@ -851,6 +856,7 @@
 
     // ── Retry ───────────────────────────────────────────
     function retry() {
+      sfxRetry();
       cancelSpeech();
       recognizedText = '';
       setFound(false);
