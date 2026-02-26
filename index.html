@@ -7,7 +7,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Read It!</title>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -546,8 +545,6 @@
     let stream         = null;
     let recognizedText = '';
     let isSpeaking     = false;
-    let workerReady    = false;
-    let tesseractWorker = null;
 
     // ── Animal badge rotation ───────────────────────────
     const animals = ['🦔','🐸','🦝','🐰','🐻','🦊','🐼','🦦','🐨','🐱','🐭','🐹'];
@@ -562,25 +559,6 @@
         badge.classList.remove('flip');
       }, 150);
     }, 4000);
-
-    // ── Tesseract worker config (explicit CDN paths) ───
-    const tesseractOpts = {
-      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
-      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0',
-      langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-      logger: () => {}
-    };
-
-    // ── Pre-load Tesseract worker ───────────────────────
-    async function initWorker() {
-      try {
-        tesseractWorker = await Tesseract.createWorker('eng', 1, tesseractOpts);
-        workerReady = true;
-      } catch (e) {
-        workerReady = false;
-      }
-    }
-    initWorker();
 
     // ── Voice selection (priority order) ────────────────
     function pickVoice() {
@@ -628,7 +606,7 @@
       }
     }
 
-    // ── Capture & OCR ───────────────────────────────────
+    // ── Capture & OCR (via Vercel AI Gateway) ──────────
     async function captureAndScan() {
       const video = document.getElementById('video');
 
@@ -655,35 +633,38 @@
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0);
 
-      try {
-        // Ensure worker is ready
-        if (!workerReady || !tesseractWorker) {
-          tesseractWorker = await Tesseract.createWorker('eng', 1, tesseractOpts);
-          workerReady = true;
-        }
+      // Export as JPEG for reasonable payload size
+      const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
-        const result = await tesseractWorker.recognize(canvas);
-        const text = result.data.text.trim().replace(/\s+/g, ' ');
+      try {
+        const response = await fetch('/api/ocr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: imageDataUrl }),
+        });
+
+        if (!response.ok) throw new Error('API error');
+
+        const data = await response.json();
+        const text = (data.text || '').replace(/\s+/g, ' ').trim();
 
         setScanningUI(false);
 
         if (text && text.length > 1) {
           recognizedText = text;
           setFound(true);
-          showBubble(text.length > 140 ? text.substring(0, 140) + '\u2026' : text);
+          showBubble(text.length > 200 ? text.substring(0, 200) + '\u2026' : text);
           setSpeakState('active');
           spawnConfetti();
           document.getElementById('statusDot').className = 'status-dot ready';
         } else {
-          showBubble('🤔 No words found \u2014 try again!');
+          showBubble('\uD83E\uDD14 No words found \u2014 try again!');
           document.getElementById('statusDot').className = 'status-dot';
         }
 
       } catch (e) {
         setScanningUI(false);
-        showBubble('😅 Oops! Try again!');
-        workerReady = false;
-        tesseractWorker = null;
+        showBubble('\uD83D\uDE05 Oops! Try again!');
         document.getElementById('statusDot').className = 'status-dot';
       }
 
