@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Read It!</title>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -563,13 +563,18 @@
       }, 150);
     }, 4000);
 
+    // ── Tesseract worker config (explicit CDN paths) ───
+    const tesseractOpts = {
+      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
+      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0',
+      langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+      logger: () => {}
+    };
+
     // ── Pre-load Tesseract worker ───────────────────────
     async function initWorker() {
       try {
-        tesseractWorker = await Tesseract.createWorker('eng', 1, {
-          logger: () => {},
-          errorHandler: () => {}
-        });
+        tesseractWorker = await Tesseract.createWorker('eng', 1, tesseractOpts);
         workerReady = true;
       } catch (e) {
         workerReady = false;
@@ -653,7 +658,7 @@
       try {
         // Ensure worker is ready
         if (!workerReady || !tesseractWorker) {
-          tesseractWorker = await Tesseract.createWorker('eng', 1, { logger: () => {} });
+          tesseractWorker = await Tesseract.createWorker('eng', 1, tesseractOpts);
           workerReady = true;
         }
 
