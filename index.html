@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Read It!</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+    }
+
+    :root {
+      --cream:        #f5efd5;
+      --green:        #7ec97f;
+      --green-dark:   #3d7a44;
+      --green-found:  #4caf50;
+      --brown:        #7a4f2c;
+      --brown-light:  #c49060;
+      --sky:          #a8d9ec;
+      --sky-dark:     #5fa8c8;
+      --yellow:       #f5d45a;
+      --yellow-dark:  #c9a920;
+      --orange:       #f0921e;
+      --orange-dark:  #b86a00;
+      --white:        #fffef5;
+      --text:         #4a3220;
+      --gray:         #b0a090;
+      --gray-dark:    #8a7a6a;
+    }
+
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    body {
+      background: var(--cream);
+      font-family: 'Nunito', sans-serif;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ─── HEADER ─────────────────────────────── */
+    .header {
+      background: linear-gradient(180deg, #8fd490 0%, var(--green) 100%);
+      padding: 10px 16px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 5px solid var(--green-dark);
+      box-shadow: 0 3px 10px rgba(61,122,68,0.3);
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    .header-title {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(1.5rem, 5vw, 2rem);
+      color: var(--white);
+      text-shadow: 2px 3px 0px var(--green-dark), 0 0 20px rgba(255,255,255,0.3);
+      letter-spacing: 2px;
+    }
+
+    .corner-deco {
+      position: absolute;
+      font-size: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .corner-deco.left  { left: 14px; }
+    .corner-deco.right { right: 14px; }
+
+    /* ─── CAMERA WRAPPER ─────────────────────── */
+    .camera-wrap {
+      flex: 1;
+      padding: 12px 12px 4px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .camera-frame {
+      flex: 1;
+      position: relative;
+      border-radius: 28px;
+      border: 5px solid var(--brown);
+      box-shadow: 0 6px 0 var(--brown), 0 10px 30px rgba(0,0,0,0.25);
+      overflow: hidden;
+      background: var(--sky);
+      transition: border-color 0.4s, box-shadow 0.4s;
+      min-height: 0;
+    }
+
+    .camera-frame.state-found {
+      border-color: var(--green-found);
+      box-shadow:
+        0 0 0 4px rgba(76,175,80,0.6),
+        0 0 35px rgba(76,175,80,0.4),
+        0 6px 0 #388e3c;
+      animation: pulse-found 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse-found {
+      0%, 100% { box-shadow: 0 0 0 3px rgba(76,175,80,0.5), 0 0 25px rgba(76,175,80,0.3), 0 6px 0 #388e3c; }
+      50%       { box-shadow: 0 0 0 7px rgba(76,175,80,0.7), 0 0 50px rgba(76,175,80,0.6), 0 6px 0 #388e3c; }
+    }
+
+    /* ─── VIDEO / CANVAS ─────────────────────── */
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    #canvas { display: none; }
+
+    /* ─── SPLASH SCREEN ─────────────────────── */
+    .splash {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      background: linear-gradient(160deg, #b8e6ef 0%, #d4f0d8 60%, #f0e8c0 100%);
+      padding: 20px;
+    }
+
+    .splash-animals {
+      font-size: 3.5rem;
+      letter-spacing: 8px;
+      animation: float-row 3s ease-in-out infinite;
+    }
+
+    @keyframes float-row {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-8px); }
+    }
+
+    .splash-label {
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.3rem;
+      color: var(--text);
+      text-align: center;
+    }
+
+    .start-btn {
+      background: var(--green);
+      border: 4px solid var(--green-dark);
+      border-radius: 50px;
+      box-shadow: 0 6px 0 var(--green-dark);
+      padding: 14px 36px;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.4rem;
+      color: var(--white);
+      cursor: pointer;
+      -webkit-appearance: none;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+
+    .start-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 var(--green-dark);
+    }
+
+    /* ─── SCANNING OVERLAY ───────────────────── */
+    .scan-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: rgba(116,201,122,0.25);
+      backdrop-filter: blur(2px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+
+    .scan-overlay.visible {
+      opacity: 1;
+    }
+
+    .scan-spinner {
+      font-size: 3.5rem;
+      animation: spin 0.9s linear infinite;
+      filter: drop-shadow(0 0 12px rgba(100,200,100,0.8));
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .scan-label {
+      background: var(--white);
+      border: 3px solid var(--green-dark);
+      border-radius: 50px;
+      padding: 6px 20px;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.2rem;
+      color: var(--green-dark);
+      box-shadow: 0 3px 0 var(--green-dark);
+    }
+
+    /* ─── RESULT BUBBLE ──────────────────────── */
+    .result-bubble {
+      position: absolute;
+      bottom: 48px;
+      left: 12px;
+      right: 12px;
+      background: var(--white);
+      border: 4px solid var(--brown-light);
+      border-radius: 18px;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.4;
+      max-height: 90px;
+      overflow-y: auto;
+      box-shadow: 0 4px 0 var(--brown-light), 0 6px 20px rgba(0,0,0,0.15);
+      display: none;
+      animation: pop-in 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    .result-bubble.visible { display: block; }
+
+    @keyframes pop-in {
+      from { transform: scale(0.8); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    /* Bubble tail */
+    .result-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -14px;
+      left: 28px;
+      width: 0;
+      height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 14px solid var(--brown-light);
+    }
+
+    .result-bubble::before {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 30px;
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 12px solid var(--white);
+      z-index: 1;
+    }
+
+    /* ─── BOTTOM GRASS STRIP ─────────────────── */
+    .grass-strip {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 46px;
+      background: linear-gradient(180deg, #74b87a 0%, var(--green-dark) 100%);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-around;
+      padding: 2px 16px 0;
+      pointer-events: none;
+    }
+
+    .grass-item { font-size: 1.3rem; line-height: 1; }
+
+    /* ─── ANIMAL BADGE ───────────────────────── */
+    .animal-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: var(--yellow);
+      border: 4px solid var(--brown);
+      border-radius: 0 24px 0 20px;
+      padding: 4px 10px;
+      font-size: 2rem;
+      line-height: 1;
+      z-index: 5;
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    .animal-badge.flip { transform: scale(-1.2, 1.2); }
+
+    /* ─── STATUS DOT ─────────────────────────── */
+    .status-dot {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--gray);
+      border: 3px solid var(--gray-dark);
+      z-index: 5;
+      transition: background 0.3s, border-color 0.3s;
+    }
+
+    .status-dot.ready    { background: var(--green-found); border-color: #388e3c; }
+    .status-dot.scanning { background: var(--yellow); border-color: var(--yellow-dark); animation: blink 0.5s ease-in-out infinite alternate; }
+    .status-dot.speaking { background: var(--orange); border-color: var(--orange-dark); }
+
+    @keyframes blink {
+      from { opacity: 1; }
+      to   { opacity: 0.3; }
+    }
+
+    /* ─── CONTROLS DOCK ──────────────────────── */
+    .controls {
+      background: linear-gradient(180deg, var(--cream) 0%, #e8dfc0 100%);
+      border-top: 4px solid var(--brown-light);
+      padding: 10px 24px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      flex-shrink: 0;
+    }
+
+    /* All buttons share base */
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      cursor: pointer;
+      border-radius: 50%;
+      -webkit-appearance: none;
+      font-size: inherit;
+      transition: transform 0.08s, box-shadow 0.08s;
+      position: relative;
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(4px) scale(0.94);
+    }
+
+    /* ─── SCAN BUTTON ────────────────────────── */
+    .btn-scan {
+      width: 82px;
+      height: 82px;
+      background: var(--yellow);
+      border: 5px solid var(--brown);
+      box-shadow: 0 7px 0 var(--brown), 0 10px 20px rgba(0,0,0,0.15);
+      font-size: 2.4rem;
+    }
+
+    .btn-scan:active:not(:disabled) {
+      box-shadow: 0 2px 0 var(--brown);
+    }
+
+    .btn-scan:disabled {
+      background: #ddd;
+      border-color: #aaa;
+      box-shadow: 0 4px 0 #aaa;
+      cursor: not-allowed;
+    }
+
+    /* ─── SPEAK BUTTON ───────────────────────── */
+    .btn-speak {
+      width: 70px;
+      height: 70px;
+      background: var(--gray);
+      border: 4px solid var(--gray-dark);
+      box-shadow: 0 5px 0 var(--gray-dark);
+      font-size: 2rem;
+      opacity: 0.45;
+      pointer-events: none;
+      transition: background 0.3s, border-color 0.3s, box-shadow 0.3s, opacity 0.3s, transform 0.08s;
+    }
+
+    .btn-speak.active {
+      background: var(--green);
+      border-color: var(--green-dark);
+      box-shadow: 0 5px 0 var(--green-dark);
+      opacity: 1;
+      pointer-events: auto;
+      animation: wiggle 2s ease-in-out infinite;
+    }
+
+    .btn-speak.speaking {
+      background: var(--orange);
+      border-color: var(--orange-dark);
+      box-shadow: 0 5px 0 var(--orange-dark);
+      opacity: 1;
+      pointer-events: auto;
+      animation: none;
+    }
+
+    .btn-speak:active:not(:disabled) {
+      box-shadow: 0 2px 0 currentColor;
+    }
+
+    @keyframes wiggle {
+      0%, 100%  { transform: rotate(0deg); }
+      10%, 30%  { transform: rotate(-10deg); }
+      20%, 40%  { transform: rotate(10deg); }
+      50%       { transform: rotate(0deg); }
+    }
+
+    /* ─── RETRY BUTTON ───────────────────────── */
+    .btn-retry {
+      width: 60px;
+      height: 60px;
+      background: var(--sky);
+      border: 4px solid var(--sky-dark);
+      box-shadow: 0 5px 0 var(--sky-dark);
+      font-size: 1.7rem;
+      opacity: 0.4;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .btn-retry.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .btn-retry:active.active {
+      box-shadow: 0 2px 0 var(--sky-dark);
+    }
+
+    /* ─── SPEAKING PULSE RING ────────────────── */
+    .waves {
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 3px solid var(--orange);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .btn-speak.speaking .waves {
+      animation: wave-out 1s ease-out infinite;
+    }
+
+    @keyframes wave-out {
+      0%   { transform: scale(1);   opacity: 0.8; }
+      100% { transform: scale(1.7); opacity: 0; }
+    }
+
+    /* ─── CONFETTI BURST ─────────────────────── */
+    .confetti-dot {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: confetti-fly 0.8s ease-out forwards;
+    }
+
+    @keyframes confetti-fly {
+      0%   { transform: translate(0,0) scale(1); opacity: 1; }
+      100% { transform: var(--end-pos) scale(0); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <span class="corner-deco left">🌿</span>
+    <span class="header-title">🔤 Read It! 🎵</span>
+    <span class="corner-deco right">🍃</span>
+  </div>
+
+  <!-- CAMERA AREA -->
+  <div class="camera-wrap">
+    <div class="camera-frame" id="cameraFrame">
+
+      <!-- Splash / Start screen -->
+      <div class="splash" id="splash">
+        <div class="splash-animals">🦝🐸🐰</div>
+        <div class="splash-label">Point your camera<br>at the words!</div>
+        <button class="start-btn" id="startBtn" onclick="startCamera()">📷 Start!</button>
+      </div>
+
+      <!-- Live video -->
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="canvas"></canvas>
+
+      <!-- Status indicator -->
+      <div class="status-dot" id="statusDot"></div>
+
+      <!-- Animal badge corner -->
+      <div class="animal-badge" id="animalBadge">🦔</div>
+
+      <!-- Scanning overlay -->
+      <div class="scan-overlay" id="scanOverlay">
+        <div class="scan-spinner">🍃</div>
+        <div class="scan-label">Reading...</div>
+      </div>
+
+      <!-- Result bubble -->
+      <div class="result-bubble" id="resultBubble"></div>
+
+      <!-- Grass strip decoration -->
+      <div class="grass-strip">
+        <span class="grass-item">🌸</span>
+        <span class="grass-item">🌻</span>
+        <span class="grass-item">🍄</span>
+        <span class="grass-item">🌺</span>
+        <span class="grass-item">🌼</span>
+        <span class="grass-item">🌷</span>
+        <span class="grass-item">🌸</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CONTROLS DOCK -->
+  <div class="controls">
+    <button class="btn btn-retry" id="retryBtn" onclick="retry()">🔄</button>
+    <button class="btn btn-scan"  id="scanBtn"  onclick="captureAndScan()">📷</button>
+    <button class="btn btn-speak" id="speakBtn" onclick="speakText()">
+      <div class="waves"></div>
+      🔊
+    </button>
+  </div>
+
+  <script>
+    // ── State ────────────────────────────────────────────
+    let stream         = null;
+    let recognizedText = '';
+    let isSpeaking     = false;
+    let workerReady    = false;
+    let tesseractWorker = null;
+
+    // ── Animal badge rotation ───────────────────────────
+    const animals = ['🦔','🐸','🦝','🐰','🐻','🦊','🐼','🦦','🐨','🐱','🐭','🐹'];
+    let animalIdx = 0;
+    const badge = document.getElementById('animalBadge');
+
+    setInterval(() => {
+      badge.classList.add('flip');
+      setTimeout(() => {
+        animalIdx = (animalIdx + 1) % animals.length;
+        badge.textContent = animals[animalIdx];
+        badge.classList.remove('flip');
+      }, 150);
+    }, 4000);
+
+    // ── Pre-load Tesseract worker ───────────────────────
+    async function initWorker() {
+      try {
+        tesseractWorker = await Tesseract.createWorker('eng', 1, {
+          logger: () => {},
+          errorHandler: () => {}
+        });
+        workerReady = true;
+      } catch (e) {
+        workerReady = false;
+      }
+    }
+    initWorker();
+
+    // ── Voice selection (priority order) ────────────────
+    function pickVoice() {
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices.length) return null;
+
+      // Try each preferred voice in priority order
+      const priorities = [
+        v => v.name.includes('Samantha'),
+        v => v.name.includes('Karen'),
+        v => v.name.includes('Moira'),
+        v => v.lang === 'en-US',
+        v => v.lang && v.lang.startsWith('en')
+      ];
+
+      for (const test of priorities) {
+        const match = voices.find(test);
+        if (match) return match;
+      }
+      return null;
+    }
+
+    // ── Start Camera ────────────────────────────────────
+    async function startCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+            width:  { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: false
+        });
+
+        const video = document.getElementById('video');
+        video.srcObject = stream;
+        video.style.display = 'block';
+        document.getElementById('splash').style.display = 'none';
+        document.getElementById('statusDot').className = 'status-dot ready';
+
+      } catch (e) {
+        document.getElementById('splash').querySelector('.splash-label').textContent =
+          'Tap Allow Camera to get started!';
+        document.getElementById('startBtn').textContent = '📷 Try Again!';
+      }
+    }
+
+    // ── Capture & OCR ───────────────────────────────────
+    async function captureAndScan() {
+      const video = document.getElementById('video');
+
+      if (!stream || !video.videoWidth) {
+        startCamera();
+        return;
+      }
+
+      // Reset UI
+      cancelSpeech();
+      recognizedText = '';
+      setFound(false);
+      hideBubble();
+      setSpeakState('idle');
+      setRetryActive(false);
+
+      // Show scanning overlay
+      setScanningUI(true);
+
+      // Capture frame to canvas
+      const canvas = document.getElementById('canvas');
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+
+      try {
+        // Ensure worker is ready
+        if (!workerReady || !tesseractWorker) {
+          tesseractWorker = await Tesseract.createWorker('eng', 1, { logger: () => {} });
+          workerReady = true;
+        }
+
+        const result = await tesseractWorker.recognize(canvas);
+        const text = result.data.text.trim().replace(/\s+/g, ' ');
+
+        setScanningUI(false);
+
+        if (text && text.length > 1) {
+          recognizedText = text;
+          setFound(true);
+          showBubble(text.length > 140 ? text.substring(0, 140) + '\u2026' : text);
+          setSpeakState('active');
+          spawnConfetti();
+          document.getElementById('statusDot').className = 'status-dot ready';
+        } else {
+          showBubble('🤔 No words found \u2014 try again!');
+          document.getElementById('statusDot').className = 'status-dot';
+        }
+
+      } catch (e) {
+        setScanningUI(false);
+        showBubble('😅 Oops! Try again!');
+        workerReady = false;
+        tesseractWorker = null;
+        document.getElementById('statusDot').className = 'status-dot';
+      }
+
+      setRetryActive(true);
+    }
+
+    // ── Speak ───────────────────────────────────────────
+    function speakText() {
+      if (!recognizedText) return;
+
+      // Tap while speaking → cancel and return to found state
+      if (isSpeaking) {
+        cancelSpeech();
+        setSpeakState('active');
+        document.getElementById('statusDot').className = 'status-dot ready';
+        return;
+      }
+
+      // iOS requires cancel before new utterance
+      window.speechSynthesis.cancel();
+
+      // iOS: must fire speech inside a user gesture with short delay
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(recognizedText);
+        utterance.rate   = 0.82;
+        utterance.pitch  = 1.05;
+        utterance.volume = 1.0;
+
+        const voice = pickVoice();
+        if (voice) utterance.voice = voice;
+
+        isSpeaking = true;
+        setSpeakState('speaking');
+        document.getElementById('statusDot').className = 'status-dot speaking';
+
+        utterance.onend = () => {
+          isSpeaking = false;
+          setSpeakState('active');
+          document.getElementById('statusDot').className = 'status-dot ready';
+        };
+
+        utterance.onerror = () => {
+          isSpeaking = false;
+          setSpeakState('active');
+          document.getElementById('statusDot').className = 'status-dot ready';
+        };
+
+        window.speechSynthesis.speak(utterance);
+      }, 50);
+    }
+
+    function cancelSpeech() {
+      window.speechSynthesis.cancel();
+      isSpeaking = false;
+    }
+
+    // ── Retry ───────────────────────────────────────────
+    function retry() {
+      cancelSpeech();
+      recognizedText = '';
+      setFound(false);
+      hideBubble();
+      setSpeakState('idle');
+      setRetryActive(false);
+      document.getElementById('statusDot').className = 'status-dot ready';
+    }
+
+    // ── UI Helpers ──────────────────────────────────────
+    function setScanningUI(on) {
+      document.getElementById('scanOverlay').classList.toggle('visible', on);
+      document.getElementById('scanBtn').disabled = on;
+      document.getElementById('statusDot').className = on ? 'status-dot scanning' : 'status-dot ready';
+    }
+
+    function setFound(on) {
+      document.getElementById('cameraFrame').classList.toggle('state-found', on);
+    }
+
+    function setSpeakState(state) {
+      const btn = document.getElementById('speakBtn');
+      btn.className = 'btn btn-speak';
+      if (state === 'active')   btn.classList.add('active');
+      if (state === 'speaking') btn.classList.add('speaking');
+      btn.innerHTML = '<div class="waves"></div>' + (state === 'speaking' ? '⏹' : '🔊');
+    }
+
+    function setRetryActive(on) {
+      document.getElementById('retryBtn').classList.toggle('active', on);
+    }
+
+    function showBubble(text) {
+      const bubble = document.getElementById('resultBubble');
+      bubble.textContent = text;
+      bubble.classList.add('visible');
+    }
+
+    function hideBubble() {
+      document.getElementById('resultBubble').classList.remove('visible');
+    }
+
+    // ── Confetti burst ──────────────────────────────────
+    function spawnConfetti() {
+      const frame  = document.getElementById('cameraFrame');
+      const colors = ['#f5d45a', '#7ec97f', '#a8d9ec', '#f5a8b8', '#f0921e', '#fffef5'];
+      const cx = frame.offsetWidth / 2;
+      const cy = frame.offsetHeight / 2;
+
+      for (let i = 0; i < 18; i++) {
+        const dot   = document.createElement('div');
+        dot.className = 'confetti-dot';
+        const angle = (i / 18) * 360;
+        const dist  = 60 + Math.random() * 80;
+        const dx    = Math.cos(angle * Math.PI / 180) * dist;
+        const dy    = Math.sin(angle * Math.PI / 180) * dist;
+        const size  = 8 + Math.random() * 8;
+
+        dot.style.cssText =
+          'width:' + size + 'px;' +
+          'height:' + size + 'px;' +
+          'background:' + colors[i % colors.length] + ';' +
+          'left:' + cx + 'px;' +
+          'top:' + cy + 'px;' +
+          '--end-pos:translate(' + dx + 'px,' + dy + 'px);' +
+          'animation-delay:' + (Math.random() * 0.1) + 's;';
+
+        frame.appendChild(dot);
+        setTimeout(() => dot.remove(), 900);
+      }
+    }
+
+    // ── iOS: pre-load voices ────────────────────────────
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+      // Trigger initial load
+      window.speechSynthesis.getVoices();
+    }
+  </script>
+</body>
+</html>
