@@ -84,24 +84,17 @@
       letter-spacing: 2px;
     }
 
-    .corner-deco {
-      position: absolute;
-      font-size: 1.5rem;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-    .corner-deco.left  { left: 14px; }
-    .corner-deco.right { right: 14px; }
-
     /* ─── CAMERA WRAPPER ─────────────────────── */
     .camera-wrap {
       flex: 1;
-      padding: 12px 12px 4px;
+      padding: 12px 12px 0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
+      gap: 10px;
       min-height: 0;
+      overflow: hidden;
     }
 
     .camera-frame {
@@ -139,7 +132,16 @@
       display: none;
     }
 
-    #canvas { display: none; }
+    #canvas {
+      display: none;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    #canvas.frozen {
+      display: block;
+    }
 
     /* ─── SPLASH SCREEN ─────────────────────── */
     .splash {
@@ -233,54 +235,68 @@
       box-shadow: 0 3px 0 var(--green-dark);
     }
 
-    /* ─── RESULT BUBBLE (AC Dialog Box) ─────── */
-    .result-bubble {
+    /* ─── AC DIALOG BOX ─────────────────────── */
+    .ac-dialog {
+      width: 100%;
+      flex-shrink: 0;
+      position: relative;
+      padding: 4px 8px;
+      display: none;
+      animation: pop-in 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    .ac-dialog.visible { display: block; }
+
+    /* Outer shape (border) */
+    .ac-dialog-outer {
+      background: var(--brown);
+      border-radius: 50% / 28%;
+      padding: 4px;
+    }
+
+    /* Inner shape (fill) */
+    .ac-dialog-inner {
+      background: linear-gradient(180deg, #fffef5 0%, #f5eed0 100%);
+      border-radius: 50% / 26%;
+      padding: 18px 28px 22px;
+      position: relative;
+    }
+
+    /* Decorative inner border (AC style) */
+    .ac-dialog-inner::before {
+      content: '';
       position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(180deg, #fffef5 0%, #f8f2e0 100%);
-      border-top: 5px solid var(--brown);
-      border-radius: 20px 20px 0 0;
-      padding: 16px 20px 20px;
+      inset: 6px 14px;
+      border: 2.5px solid var(--brown-light);
+      border-radius: 50% / 30%;
+      pointer-events: none;
+      opacity: 0.35;
+    }
+
+    .ac-dialog-text {
       font-size: 1rem;
       font-weight: 800;
       color: var(--text);
       line-height: 1.5;
-      max-height: 45%;
+      text-align: center;
+      max-height: 80px;
       overflow-y: auto;
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
-      display: none;
-      animation: slide-up 0.3s cubic-bezier(0.34,1.56,0.64,1);
-      z-index: 6;
+      position: relative;
+      z-index: 1;
     }
 
-    /* Inner decorative border (AC style) */
-    .result-bubble::before {
-      content: '';
-      position: absolute;
-      top: 8px;
-      left: 10px;
-      right: 10px;
-      bottom: 10px;
-      border: 3px solid var(--brown-light);
-      border-radius: 12px;
-      pointer-events: none;
-      opacity: 0.4;
-    }
-
-    /* Small advance indicator triangle (AC style) */
-    .result-bubble::after {
-      content: '';
+    /* Advance arrow */
+    .ac-dialog-arrow {
       position: absolute;
       bottom: 10px;
-      right: 18px;
+      right: 22%;
       width: 0;
       height: 0;
-      border-left: 7px solid transparent;
-      border-right: 7px solid transparent;
-      border-top: 8px solid var(--brown-light);
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 7px solid var(--brown-light);
       animation: bounce-arrow 1s ease-in-out infinite;
+      z-index: 1;
     }
 
     @keyframes bounce-arrow {
@@ -288,11 +304,9 @@
       50%      { transform: translateY(3px); }
     }
 
-    .result-bubble.visible { display: block; }
-
-    @keyframes slide-up {
-      from { transform: translateY(100%); opacity: 0; }
-      to   { transform: translateY(0);    opacity: 1; }
+    @keyframes pop-in {
+      from { transform: scale(0.85); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
     }
 
     /* ─── BOTTOM GRASS STRIP ─────────────────── */
@@ -304,9 +318,9 @@
       height: 46px;
       background: linear-gradient(180deg, #74b87a 0%, var(--green-dark) 100%);
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-around;
-      padding: 2px 16px 0;
+      padding: 0 16px;
       pointer-events: none;
     }
 
@@ -496,9 +510,7 @@
 
   <!-- HEADER -->
   <div class="header">
-    <span class="corner-deco left">🌿</span>
-    <span class="header-title">🔤 Read It! 🎵</span>
-    <span class="corner-deco right">🍃</span>
+    <span class="header-title">AC. Read It!</span>
   </div>
 
   <!-- CAMERA AREA -->
@@ -525,9 +537,6 @@
         <div class="scan-label">Reading...</div>
       </div>
 
-      <!-- Result bubble -->
-      <div class="result-bubble" id="resultBubble"></div>
-
       <!-- Grass strip decoration -->
       <div class="grass-strip">
         <span class="grass-item">🌸</span>
@@ -539,6 +548,16 @@
         <span class="grass-item">🌸</span>
       </div>
 
+    </div>
+
+    <!-- AC Dialog Box (below camera) -->
+    <div class="ac-dialog" id="resultBubble">
+      <div class="ac-dialog-outer">
+        <div class="ac-dialog-inner">
+          <div class="ac-dialog-text" id="resultText"></div>
+          <div class="ac-dialog-arrow"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -625,15 +644,47 @@
       setSpeakState('idle');
       setRetryActive(false);
 
+      // Unfreeze previous capture if any
+      document.getElementById('canvas').classList.remove('frozen');
+      video.style.display = 'block';
+
       // Show scanning overlay
       setScanningUI(true);
 
-      // Capture frame to canvas
+      // Capture only the visible (cropped) portion of the video
       const canvas = document.getElementById('canvas');
-      canvas.width  = video.videoWidth;
-      canvas.height = video.videoHeight;
+      const frame = document.getElementById('cameraFrame');
+      const frameW = frame.clientWidth;
+      const frameH = frame.clientHeight;
+      const videoW = video.videoWidth;
+      const videoH = video.videoHeight;
+
+      // Calculate the object-fit: cover crop region
+      const frameAspect = frameW / frameH;
+      const videoAspect = videoW / videoH;
+      let sx, sy, sw, sh;
+      if (videoAspect > frameAspect) {
+        // Video wider than frame — crop sides
+        sh = videoH;
+        sw = Math.round(videoH * frameAspect);
+        sx = Math.round((videoW - sw) / 2);
+        sy = 0;
+      } else {
+        // Video taller than frame — crop top/bottom
+        sw = videoW;
+        sh = Math.round(videoW / frameAspect);
+        sx = 0;
+        sy = Math.round((videoH - sh) / 2);
+      }
+
+      canvas.width = sw;
+      canvas.height = sh;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0);
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+
+      // Freeze: show canvas, hide video
+      video.style.display = 'none';
+      canvas.classList.add('frozen');
 
       // Export as JPEG for reasonable payload size
       const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
@@ -738,6 +789,10 @@
       setSpeakState('idle');
       setRetryActive(false);
       document.getElementById('statusDot').className = 'status-dot ready';
+
+      // Unfreeze: show video, hide canvas
+      document.getElementById('canvas').classList.remove('frozen');
+      document.getElementById('video').style.display = 'block';
     }
 
     // ── UI Helpers ──────────────────────────────────────
@@ -767,9 +822,8 @@
     }
 
     function showBubble(text) {
-      const bubble = document.getElementById('resultBubble');
-      bubble.textContent = text;
-      bubble.classList.add('visible');
+      document.getElementById('resultText').textContent = text;
+      document.getElementById('resultBubble').classList.add('visible');
     }
 
     function hideBubble() {
