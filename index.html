@@ -3,9 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="An AI-powered screen reader purpose-built for Animal Crossing. Point your camera at in-game text and hear it read aloud!">
+  <meta name="theme-color" content="#7ec97f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Read It!</title>
+  <meta name="apple-mobile-web-app-title" content="Read It!">
+  <title>Read It! - Animal Crossing Screen Reader</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/public/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/public/favicon-16x16.png">
+  <link rel="icon" href="/public/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/public/apple-touch-icon.png">
+  <link rel="manifest" href="/public/manifest.json">
+  <meta property="og:title" content="Read It! - Animal Crossing Screen Reader">
+  <meta property="og:description" content="An AI-powered screen reader purpose-built for Animal Crossing. Point your camera at in-game text and hear it read aloud!">
+  <meta property="og:image" content="/public/icon-512.png">
+  <meta property="og:type" content="website">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
   <style>
     * {
@@ -87,11 +99,15 @@
       padding: 12px 12px 4px;
       display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
       min-height: 0;
     }
 
     .camera-frame {
-      flex: 1;
+      width: 100%;
+      max-height: 100%;
+      aspect-ratio: 16 / 10;
       position: relative;
       border-radius: 28px;
       border: 5px solid var(--brown);
@@ -99,7 +115,6 @@
       overflow: hidden;
       background: var(--sky);
       transition: border-color 0.4s, box-shadow 0.4s;
-      min-height: 0;
     }
 
     .camera-frame.state-found {
@@ -218,58 +233,66 @@
       box-shadow: 0 3px 0 var(--green-dark);
     }
 
-    /* ─── RESULT BUBBLE ──────────────────────── */
+    /* ─── RESULT BUBBLE (AC Dialog Box) ─────── */
     .result-bubble {
       position: absolute;
-      bottom: 48px;
-      left: 12px;
-      right: 12px;
-      background: var(--white);
-      border: 4px solid var(--brown-light);
-      border-radius: 18px;
-      padding: 10px 14px;
-      font-size: 0.9rem;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, #fffef5 0%, #f8f2e0 100%);
+      border-top: 5px solid var(--brown);
+      border-radius: 20px 20px 0 0;
+      padding: 16px 20px 20px;
+      font-size: 1rem;
       font-weight: 800;
       color: var(--text);
-      line-height: 1.4;
-      max-height: 90px;
+      line-height: 1.5;
+      max-height: 45%;
       overflow-y: auto;
-      box-shadow: 0 4px 0 var(--brown-light), 0 6px 20px rgba(0,0,0,0.15);
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
       display: none;
-      animation: pop-in 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      animation: slide-up 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 6;
+    }
+
+    /* Inner decorative border (AC style) */
+    .result-bubble::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      border: 3px solid var(--brown-light);
+      border-radius: 12px;
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
+    /* Small advance indicator triangle (AC style) */
+    .result-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: 10px;
+      right: 18px;
+      width: 0;
+      height: 0;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-top: 8px solid var(--brown-light);
+      animation: bounce-arrow 1s ease-in-out infinite;
+    }
+
+    @keyframes bounce-arrow {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(3px); }
     }
 
     .result-bubble.visible { display: block; }
 
-    @keyframes pop-in {
-      from { transform: scale(0.8); opacity: 0; }
-      to   { transform: scale(1);   opacity: 1; }
-    }
-
-    /* Bubble tail */
-    .result-bubble::after {
-      content: '';
-      position: absolute;
-      bottom: -14px;
-      left: 28px;
-      width: 0;
-      height: 0;
-      border-left: 10px solid transparent;
-      border-right: 10px solid transparent;
-      border-top: 14px solid var(--brown-light);
-    }
-
-    .result-bubble::before {
-      content: '';
-      position: absolute;
-      bottom: -10px;
-      left: 30px;
-      width: 0;
-      height: 0;
-      border-left: 8px solid transparent;
-      border-right: 8px solid transparent;
-      border-top: 12px solid var(--white);
-      z-index: 1;
+    @keyframes slide-up {
+      from { transform: translateY(100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
     }
 
     /* ─── BOTTOM GRASS STRIP ─────────────────── */
@@ -288,23 +311,6 @@
     }
 
     .grass-item { font-size: 1.3rem; line-height: 1; }
-
-    /* ─── ANIMAL BADGE ───────────────────────── */
-    .animal-badge {
-      position: absolute;
-      top: -4px;
-      right: -4px;
-      background: var(--yellow);
-      border: 4px solid var(--brown);
-      border-radius: 0 24px 0 20px;
-      padding: 4px 10px;
-      font-size: 2rem;
-      line-height: 1;
-      z-index: 5;
-      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
-    }
-
-    .animal-badge.flip { transform: scale(-1.2, 1.2); }
 
     /* ─── STATUS DOT ─────────────────────────── */
     .status-dot {
@@ -444,6 +450,15 @@
       box-shadow: 0 2px 0 var(--sky-dark);
     }
 
+    /* SVG icon styling */
+    .btn svg {
+      display: block;
+    }
+
+    .btn-speak svg {
+      color: var(--white);
+    }
+
     /* ─── SPEAKING PULSE RING ────────────────── */
     .waves {
       position: absolute;
@@ -504,9 +519,6 @@
       <!-- Status indicator -->
       <div class="status-dot" id="statusDot"></div>
 
-      <!-- Animal badge corner -->
-      <div class="animal-badge" id="animalBadge">🦔</div>
-
       <!-- Scanning overlay -->
       <div class="scan-overlay" id="scanOverlay">
         <div class="scan-spinner">🍃</div>
@@ -532,11 +544,15 @@
 
   <!-- CONTROLS DOCK -->
   <div class="controls">
-    <button class="btn btn-retry" id="retryBtn" onclick="retry()">🔄</button>
-    <button class="btn btn-scan"  id="scanBtn"  onclick="captureAndScan()">📷</button>
+    <button class="btn btn-retry" id="retryBtn" onclick="retry()">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3d6e8c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+    </button>
+    <button class="btn btn-scan"  id="scanBtn"  onclick="captureAndScan()">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    </button>
     <button class="btn btn-speak" id="speakBtn" onclick="speakText()">
       <div class="waves"></div>
-      🔊
+      <svg class="megaphone-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.5 3 L18.5 21 L7 15 L7 9 Z"/><path d="M7 9 L3.5 9 C2.7 9 2 9.7 2 10.5 L2 13.5 C2 14.3 2.7 15 3.5 15 L7 15"/><path d="M18.5 6 C20.5 8 20.5 16 18.5 18"/><path d="M7 15 L8 20 L11 20 L10 15"/></svg>
     </button>
   </div>
 
@@ -545,20 +561,6 @@
     let stream         = null;
     let recognizedText = '';
     let isSpeaking     = false;
-
-    // ── Animal badge rotation ───────────────────────────
-    const animals = ['🦔','🐸','🦝','🐰','🐻','🦊','🐼','🦦','🐨','🐱','🐭','🐹'];
-    let animalIdx = 0;
-    const badge = document.getElementById('animalBadge');
-
-    setInterval(() => {
-      badge.classList.add('flip');
-      setTimeout(() => {
-        animalIdx = (animalIdx + 1) % animals.length;
-        badge.textContent = animals[animalIdx];
-        badge.classList.remove('flip');
-      }, 150);
-    }, 4000);
 
     // ── Voice selection (priority order) ────────────────
     function pickVoice() {
@@ -749,12 +751,15 @@
       document.getElementById('cameraFrame').classList.toggle('state-found', on);
     }
 
+    const megaphoneSVG = '<svg class="megaphone-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.5 3 L18.5 21 L7 15 L7 9 Z"/><path d="M7 9 L3.5 9 C2.7 9 2 9.7 2 10.5 L2 13.5 C2 14.3 2.7 15 3.5 15 L7 15"/><path d="M18.5 6 C20.5 8 20.5 16 18.5 18"/><path d="M7 15 L8 20 L11 20 L10 15"/></svg>';
+    const stopSVG = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>';
+
     function setSpeakState(state) {
       const btn = document.getElementById('speakBtn');
       btn.className = 'btn btn-speak';
       if (state === 'active')   btn.classList.add('active');
       if (state === 'speaking') btn.classList.add('speaking');
-      btn.innerHTML = '<div class="waves"></div>' + (state === 'speaking' ? '⏹' : '🔊');
+      btn.innerHTML = '<div class="waves"></div>' + (state === 'speaking' ? stopSVG : megaphoneSVG);
     }
 
     function setRetryActive(on) {
