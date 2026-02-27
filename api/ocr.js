@@ -64,7 +64,7 @@ module.exports = async (req, res) => {
             ],
           },
         ],
-        max_tokens: 500,
+        max_tokens: 1000,
         temperature: 0.1,
       }),
     });
@@ -81,19 +81,33 @@ module.exports = async (req, res) => {
     const data = await response.json();
     const rawContent = data.choices?.[0]?.message?.content || '';
 
+    // Strip markdown code fences if present
+    let cleaned = rawContent.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+
     // Parse the JSON response
     let dialogue = '';
     let scene = '';
     try {
-      const parsed = JSON.parse(rawContent.trim());
+      const parsed = JSON.parse(cleaned);
       dialogue = (parsed.dialogue || '').trim();
       scene = (parsed.scene || '').trim();
     } catch (parseErr) {
-      // Fallback: treat the whole response as dialogue (old format)
-      const fallback = rawContent.trim();
-      if (fallback && fallback !== 'NO_TEXT_FOUND') {
-        dialogue = fallback;
-        scene = fallback;
+      // JSON may be truncated by token limit -- try to extract fields from partial JSON
+      const dialogueMatch = cleaned.match(/"dialogue"\s*:\s*"((?:[^"\\]|\\.)*)(?:"|$)/);
+      const sceneMatch = cleaned.match(/"scene"\s*:\s*"((?:[^"\\]|\\.)*)(?:"|$)/);
+      if (dialogueMatch) {
+        dialogue = dialogueMatch[1].replace(/\\"/g, '"').replace(/\\n/g, ' ').trim();
+      }
+      if (sceneMatch) {
+        scene = sceneMatch[1].replace(/\\"/g, '"').replace(/\\n/g, ' ').trim();
+      }
+      // Final fallback: treat the whole response as dialogue (old format)
+      if (!dialogue && !scene) {
+        const fallback = rawContent.trim();
+        if (fallback && fallback !== 'NO_TEXT_FOUND') {
+          dialogue = fallback;
+          scene = fallback;
+        }
       }
     }
 
