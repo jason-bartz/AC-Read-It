@@ -273,8 +273,10 @@
       color: var(--text);
       line-height: 1.5;
       text-align: center;
-      max-height: 80px;
+      max-height: 140px;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
 
     .ac-dialog-text .word {
@@ -660,6 +662,7 @@
     // ── State ────────────────────────────────────────────
     let stream           = null;
     let recognizedText   = '';
+    let displayedText    = '';   // tracks what's currently shown in the dialog
     let isSpeaking       = false;
     let scanController   = null;  // AbortController for in-flight OCR
     let lastImageDataUrl = '';    // saved capture for context API
@@ -745,6 +748,7 @@
       // Reset UI
       cancelSpeech();
       recognizedText = '';
+      displayedText = '';
       lastImageDataUrl = '';
       setFound(false);
       hideBubble();
@@ -828,6 +832,7 @@
 
         if (text && text.length > 1) {
           recognizedText = text;
+          displayedText = text;
           setFound(true);
           showBubbleWithWords(text);
           setSpeakState('active');
@@ -863,7 +868,7 @@
 
     // ── Speak ───────────────────────────────────────────
     function speakText() {
-      if (!recognizedText) return;
+      if (!displayedText) return;
 
       // Tap while speaking → cancel and return to found state
       if (isSpeaking) {
@@ -878,15 +883,15 @@
       // iOS requires cancel before new utterance
       window.speechSynthesis.cancel();
 
-      // Show the OCR text with word spans (in case context replaced it)
-      showBubbleWithWords(recognizedText);
+      // Re-render current displayed text with word spans
+      showBubbleWithWords(displayedText);
 
       // Play speak sound
       sfxSpeak();
 
       // iOS: must fire speech inside a user gesture with short delay
       setTimeout(() => {
-        const utterance = new SpeechSynthesisUtterance(recognizedText);
+        const utterance = new SpeechSynthesisUtterance(displayedText);
         utterance.rate   = 0.82;
         utterance.pitch  = 1.05;
         utterance.volume = 1.0;
@@ -932,6 +937,7 @@
       sfxRetry();
       cancelSpeech();
       recognizedText = '';
+      displayedText = '';
       lastImageDataUrl = '';
       setFound(false);
       hideBubble();
@@ -1081,47 +1087,10 @@
         setContextState('active');
 
         if (context) {
-          // Show context with word spans and auto-speak it
+          // Update displayed text to context and show with word spans
+          displayedText = context;
           showBubbleWithWords(context);
-
-          window.speechSynthesis.cancel();
-          sfxSpeak();
-
-          setTimeout(() => {
-            const utterance = new SpeechSynthesisUtterance(context);
-            utterance.rate   = 0.82;
-            utterance.pitch  = 1.05;
-            utterance.volume = 1.0;
-
-            const voice = pickVoice();
-            if (voice) utterance.voice = voice;
-
-            isSpeaking = true;
-            setSpeakState('speaking');
-            document.getElementById('statusDot').className = 'status-dot speaking';
-
-            utterance.onboundary = (event) => {
-              if (event.name === 'word') {
-                highlightWordAt(event.charIndex);
-              }
-            };
-
-            utterance.onend = () => {
-              isSpeaking = false;
-              clearHighlights();
-              setSpeakState('active');
-              document.getElementById('statusDot').className = 'status-dot ready';
-            };
-
-            utterance.onerror = () => {
-              isSpeaking = false;
-              clearHighlights();
-              setSpeakState('active');
-              document.getElementById('statusDot').className = 'status-dot ready';
-            };
-
-            window.speechSynthesis.speak(utterance);
-          }, 50);
+          setSpeakState('active');
         } else {
           showBubble('\uD83E\uDD14 Hmm, I\u2019m not sure what\u2019s happening here!');
         }
