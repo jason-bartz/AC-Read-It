@@ -262,8 +262,8 @@
       display: none;
       animation: pop-in 0.35s cubic-bezier(0.34,1.56,0.64,1);
       background: url('dialogue-box.webp') center / 100% 100% no-repeat;
-      padding: 28px 40px 30px 44px;
-      height: 150px;
+      padding: 18px 26px 20px 30px;
+      height: 200px;
       overflow: hidden;
     }
 
@@ -689,6 +689,17 @@
       setTimeout(() => playTone(1047, 0.15, 'sine', 0.2), 180);
     }
 
+    // ── Speech unlock (iOS requires user gesture to activate) ──
+    let speechUnlocked = false;
+    function unlockSpeech() {
+      if (speechUnlocked) return;
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0.01;
+      u.rate = 10;
+      window.speechSynthesis.speak(u);
+      speechUnlocked = true;
+    }
+
     // ── State ────────────────────────────────────────────
     let stream           = null;
     let recognizedText   = '';
@@ -722,6 +733,7 @@
 
     // ── Start Camera ────────────────────────────────────
     async function startCamera() {
+      unlockSpeech();
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -763,6 +775,7 @@
 
     // ── Capture & OCR (via Vercel AI Gateway) ──────────
     async function captureAndScan() {
+      unlockSpeech();
       // If already scanning, cancel it
       if (scanController) {
         cancelScan();
@@ -876,7 +889,7 @@
           document.getElementById('statusDot').className = 'status-dot ready';
 
           // Auto-read: speak the text after a brief delay for the success jingle
-          setTimeout(() => speakText(), 500);
+          setTimeout(() => speakText(true), 500);
           setRetryActive(true);
         } else {
           showBubble('\uD83E\uDD14 No words found \u2014 try again!');
@@ -904,7 +917,7 @@
     }
 
     // ── Speak ───────────────────────────────────────────
-    function speakText() {
+    function speakText(auto) {
       if (!displayedText) return;
 
       // Tap while speaking → cancel and return to found state
@@ -923,11 +936,10 @@
       // Re-render current displayed text with word spans
       showBubbleWithWords(displayedText);
 
-      // Play speak sound
-      sfxSpeak();
+      // Play speak sound only on manual tap
+      if (!auto) sfxSpeak();
 
-      // iOS: must fire speech inside a user gesture with short delay
-      setTimeout(() => {
+      const startSpeaking = () => {
         const utterance = new SpeechSynthesisUtterance(displayedText);
         utterance.rate   = 0.82;
         utterance.pitch  = 1.05;
@@ -962,7 +974,15 @@
         };
 
         window.speechSynthesis.speak(utterance);
-      }, 50);
+      };
+
+      // Auto-triggered: speak immediately (speech already unlocked)
+      // Manual tap: short delay to let sfx play first
+      if (auto) {
+        startSpeaking();
+      } else {
+        setTimeout(startSpeaking, 50);
+      }
     }
 
     function cancelSpeech() {
@@ -1143,7 +1163,7 @@
           showBubbleWithWords(context);
           setSpeakState('active');
           // Auto-read the context explanation
-          setTimeout(() => speakText(), 300);
+          setTimeout(() => speakText(true), 300);
         } else {
           showBubble('\uD83E\uDD14 Hmm, I\u2019m not sure what\u2019s happening here!');
         }
@@ -1212,7 +1232,7 @@
           showBubbleWithWords(guide);
           setSpeakState('active');
           // Auto-read the guide response
-          setTimeout(() => speakText(), 300);
+          setTimeout(() => speakText(true), 300);
         } else {
           showBubble('\u{1F914} Hmm, I\u2019m not sure what to do here!');
         }
