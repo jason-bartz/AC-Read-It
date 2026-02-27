@@ -10,7 +10,7 @@ RULES:
 - If there are menu options or choices visible, explain EACH option simply and tell them which one to pick
 - For Yes/No questions, explain what each choice means and suggest one
 - Use very simple words a 4-year-old would understand
-- Keep it to 1-3 short sentences
+- Keep it to 2-4 short sentences (more if explaining multiple menu options)
 - Be encouraging and friendly
 - Reference specific actions: "Press A", "Press B to go back", "Pick the top one", "Move down to pick the second one"
 - If a character is asking a question, explain what they're asking and what to answer
@@ -62,7 +62,7 @@ module.exports = async (req, res) => {
             ],
           },
         ],
-        max_tokens: 500,
+        max_tokens: 800,
         temperature: 0.7,
       }),
     });
