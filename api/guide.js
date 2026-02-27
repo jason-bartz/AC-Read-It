@@ -63,7 +63,7 @@ module.exports = async (req, res) => {
             ],
           },
         ],
-        max_tokens: 800,
+        max_tokens: 4096,
         temperature: 0.7,
       }),
     });
