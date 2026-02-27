@@ -715,6 +715,148 @@
       setTimeout(() => playTone(1047, 0.15, 'sine', 0.2), 180);
     }
 
+    // ── Character Voice Signatures ──────────────────────────
+    // Each recurring AC character gets a unique audio cue that plays
+    // before the screen reader voice, like their in-game "animalese."
+
+    // Tom Nook — deep, warm, businesslike "ho ho"
+    function sfxVoiceTomNook() {
+      playTone(220, 0.12, 'triangle', 0.22);
+      setTimeout(() => playTone(262, 0.1, 'triangle', 0.2), 100);
+      setTimeout(() => playTone(330, 0.15, 'triangle', 0.18), 200);
+    }
+
+    // Isabelle — cheerful, bouncy, high-pitched
+    function sfxVoiceIsabelle() {
+      playTone(880, 0.07, 'sine', 0.2);
+      setTimeout(() => playTone(988, 0.07, 'sine', 0.22), 60);
+      setTimeout(() => playTone(1047, 0.07, 'sine', 0.22), 130);
+      setTimeout(() => playTone(1175, 0.12, 'sine', 0.2), 200);
+    }
+
+    // Timmy and Tommy — rapid twin chirps (they talk in tandem)
+    function sfxVoiceTimmyTommy() {
+      playTone(660, 0.06, 'sine', 0.2);
+      setTimeout(() => playTone(880, 0.08, 'sine', 0.22), 50);
+      setTimeout(() => playTone(660, 0.06, 'sine', 0.2), 150);
+      setTimeout(() => playTone(880, 0.08, 'sine', 0.22), 200);
+    }
+
+    // Sable — quiet, gentle, reserved
+    function sfxVoiceSable() {
+      playTone(440, 0.15, 'sine', 0.14);
+      setTimeout(() => playTone(523, 0.18, 'sine', 0.12), 140);
+    }
+
+    // Mabel — perky, friendly, welcoming
+    function sfxVoiceMabel() {
+      playTone(587, 0.08, 'sine', 0.2);
+      setTimeout(() => playTone(698, 0.08, 'sine', 0.22), 80);
+      setTimeout(() => playTone(784, 0.12, 'sine', 0.2), 160);
+    }
+
+    // Labelle — elegant, flowing, fashionable
+    function sfxVoiceLabelle() {
+      playTone(523, 0.12, 'sine', 0.18, 15);
+      setTimeout(() => playTone(622, 0.12, 'sine', 0.2, 10), 110);
+      setTimeout(() => playTone(698, 0.15, 'sine', 0.18, 15), 220);
+    }
+
+    // Blathers — owlish, deep, intellectual (2 slow + quick flutter)
+    function sfxVoiceBlathers() {
+      playTone(262, 0.15, 'triangle', 0.2);
+      setTimeout(() => playTone(294, 0.12, 'triangle', 0.18), 140);
+      setTimeout(() => playTone(349, 0.05, 'triangle', 0.15), 260);
+      setTimeout(() => playTone(392, 0.05, 'triangle', 0.15), 300);
+      setTimeout(() => playTone(349, 0.06, 'triangle', 0.12), 340);
+    }
+
+    // Celeste — dreamy, twinkling, starry
+    function sfxVoiceCeleste() {
+      playTone(880, 0.08, 'sine', 0.18);
+      setTimeout(() => playTone(1175, 0.08, 'sine', 0.15), 80);
+      setTimeout(() => playTone(988, 0.08, 'sine', 0.18), 170);
+      setTimeout(() => playTone(1319, 0.12, 'sine', 0.15), 260);
+    }
+
+    // KK Slider — musical, groovy, guitar-riff feel
+    function sfxVoiceKKSlider() {
+      playTone(440, 0.1, 'sine', 0.2);
+      setTimeout(() => playTone(523, 0.08, 'sine', 0.22), 90);
+      setTimeout(() => playTone(587, 0.08, 'sine', 0.2), 170);
+      setTimeout(() => playTone(660, 0.14, 'sine', 0.22), 250);
+    }
+
+    // Kapp'n — sea-shanty rolling, warm and gravelly
+    function sfxVoiceKappn() {
+      playTone(294, 0.12, 'triangle', 0.2);
+      setTimeout(() => playTone(349, 0.1, 'triangle', 0.22), 110);
+      setTimeout(() => playTone(440, 0.15, 'triangle', 0.2), 210);
+    }
+
+    // Reese — sweet, sparkly ascending
+    function sfxVoiceReese() {
+      playTone(698, 0.08, 'sine', 0.2);
+      setTimeout(() => playTone(831, 0.08, 'sine', 0.22), 80);
+      setTimeout(() => playTone(988, 0.12, 'sine', 0.2), 160);
+    }
+
+    // Cyrus — gruff, deep, strong
+    function sfxVoiceCyrus() {
+      playTone(196, 0.14, 'square', 0.15);
+      setTimeout(() => playTone(262, 0.16, 'square', 0.13), 130);
+    }
+
+    // Shrunk — theatrical, comedic, exaggerated up-down-up
+    function sfxVoiceShrunk() {
+      playTone(330, 0.1, 'triangle', 0.2);
+      setTimeout(() => playTone(523, 0.08, 'triangle', 0.22), 90);
+      setTimeout(() => playTone(392, 0.08, 'triangle', 0.2), 180);
+      setTimeout(() => playTone(660, 0.14, 'triangle', 0.18), 260);
+    }
+
+    // Character voice lookup map — keys are lowercase speaker names
+    const CHARACTER_VOICES = {
+      'tom nook':          { play: sfxVoiceTomNook,     duration: 350 },
+      'isabelle':          { play: sfxVoiceIsabelle,     duration: 320 },
+      'timmy and tommy':   { play: sfxVoiceTimmyTommy,  duration: 280 },
+      'timmy':             { play: sfxVoiceTimmyTommy,  duration: 280 },
+      'tommy':             { play: sfxVoiceTimmyTommy,  duration: 280 },
+      'timmy & tommy':     { play: sfxVoiceTimmyTommy,  duration: 280 },
+      'sable':             { play: sfxVoiceSable,       duration: 320 },
+      'mabel':             { play: sfxVoiceMabel,       duration: 280 },
+      'labelle':           { play: sfxVoiceLabelle,     duration: 370 },
+      'blathers':          { play: sfxVoiceBlathers,    duration: 400 },
+      'celeste':           { play: sfxVoiceCeleste,     duration: 370 },
+      'kk slider':         { play: sfxVoiceKKSlider,    duration: 390 },
+      'k.k. slider':       { play: sfxVoiceKKSlider,    duration: 390 },
+      'k.k.':              { play: sfxVoiceKKSlider,    duration: 390 },
+      "kapp'n":            { play: sfxVoiceKappn,       duration: 360 },
+      'kappn':             { play: sfxVoiceKappn,       duration: 360 },
+      'reese':             { play: sfxVoiceReese,       duration: 280 },
+      'cyrus':             { play: sfxVoiceCyrus,       duration: 290 },
+      'shrunk':            { play: sfxVoiceShrunk,      duration: 400 },
+      'dr. shrunk':        { play: sfxVoiceShrunk,      duration: 400 },
+    };
+
+    // Detect if the displayed text starts with a known character's name
+    function detectCharacter(text) {
+      if (!text) return null;
+      const match = text.match(/^([A-Za-z.'\s&]+?):\s/);
+      if (!match) return null;
+      const speaker = match[1].trim().toLowerCase();
+      return CHARACTER_VOICES[speaker] ? speaker : null;
+    }
+
+    // Play a character's voice signature; returns the duration (ms) to wait before TTS
+    function playCharacterVoice(text) {
+      const character = detectCharacter(text);
+      if (!character) return 0;
+      const voice = CHARACTER_VOICES[character];
+      voice.play();
+      return voice.duration;
+    }
+
     // ── Speech unlock (iOS requires user gesture to activate) ──
     let speechUnlocked = false;
     function unlockSpeech() {
@@ -983,8 +1125,9 @@
       // Re-render current displayed text with word spans
       showBubbleWithWords(displayedText);
 
-      // Play speak sound only on manual tap
-      if (!auto) sfxSpeak();
+      // Play character voice if a known speaker is detected, otherwise generic sfx
+      const charVoiceDuration = playCharacterVoice(displayedText);
+      if (!charVoiceDuration && !auto) sfxSpeak();
 
       const startSpeaking = () => {
         const utterance = new SpeechSynthesisUtterance(displayedText);
@@ -1023,9 +1166,10 @@
         window.speechSynthesis.speak(utterance);
       };
 
-      // Auto-triggered: speak immediately (speech already unlocked)
-      // Manual tap: short delay to let sfx play first
-      if (auto) {
+      // Delay TTS to let character voice (or generic sfx) finish first
+      if (charVoiceDuration > 0) {
+        setTimeout(startSpeaking, charVoiceDuration);
+      } else if (auto) {
         startSpeaking();
       } else {
         setTimeout(startSpeaking, 50);
