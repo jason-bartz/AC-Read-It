@@ -277,6 +277,18 @@
       overflow-y: auto;
     }
 
+    .ac-dialog-text .word {
+      transition: background-color 0.12s, color 0.12s;
+      border-radius: 4px;
+      padding: 1px 2px;
+    }
+
+    .ac-dialog-text .word.highlight {
+      background-color: var(--yellow);
+      color: var(--brown);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+
     /* Advance arrow */
     .ac-dialog-arrow {
       position: absolute;
@@ -331,7 +343,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 24px;
+      gap: 16px;
       flex-shrink: 0;
     }
 
@@ -448,6 +460,40 @@
       box-shadow: 0 2px 0 var(--sky-dark);
     }
 
+    /* ─── CONTEXT BUTTON ────────────────────── */
+    .btn-context {
+      width: 60px;
+      height: 60px;
+      background: var(--gray);
+      border: 4px solid var(--gray-dark);
+      box-shadow: 0 5px 0 var(--gray-dark);
+      font-size: 1.7rem;
+      opacity: 0.4;
+      pointer-events: none;
+      transition: background 0.3s, border-color 0.3s, box-shadow 0.3s, opacity 0.3s, transform 0.08s;
+    }
+
+    .btn-context.active {
+      background: #e8b4d0;
+      border-color: #b07898;
+      box-shadow: 0 5px 0 #b07898;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .btn-context.loading {
+      background: #e8b4d0;
+      border-color: #b07898;
+      box-shadow: 0 5px 0 #b07898;
+      opacity: 1;
+      pointer-events: auto;
+      animation: blink 0.5s ease-in-out infinite alternate;
+    }
+
+    .btn-context:active.active {
+      box-shadow: 0 2px 0 #b07898;
+    }
+
     /* SVG icon styling */
     .btn svg {
       display: block;
@@ -542,6 +588,9 @@
       <div class="waves"></div>
       <svg class="megaphone-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.5 3 L18.5 21 L7 15 L7 9 Z"/><path d="M7 9 L3.5 9 C2.7 9 2 9.7 2 10.5 L2 13.5 C2 14.3 2.7 15 3.5 15 L7 15"/><path d="M18.5 6 C20.5 8 20.5 16 18.5 18"/><path d="M7 15 L8 20 L11 20 L10 15"/></svg>
     </button>
+    <button class="btn btn-context" id="contextBtn" onclick="explainContext()">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5a3518" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </button>
   </div>
 
   <script>
@@ -602,11 +651,19 @@
       setTimeout(() => playTone(1319, 0.2, 'sine', 0.25), 300);
     }
 
+    // Context — curious rising two-note
+    function sfxContext() {
+      playTone(523, 0.12, 'sine', 0.18);
+      setTimeout(() => playTone(784, 0.15, 'sine', 0.2), 100);
+    }
+
     // ── State ────────────────────────────────────────────
-    let stream         = null;
-    let recognizedText = '';
-    let isSpeaking     = false;
-    let scanController = null;  // AbortController for in-flight OCR
+    let stream           = null;
+    let recognizedText   = '';
+    let isSpeaking       = false;
+    let scanController   = null;  // AbortController for in-flight OCR
+    let lastImageDataUrl = '';    // saved capture for context API
+    let contextController = null; // AbortController for in-flight context
 
     // ── Voice selection (priority order) ────────────────
     function pickVoice() {
@@ -688,9 +745,11 @@
       // Reset UI
       cancelSpeech();
       recognizedText = '';
+      lastImageDataUrl = '';
       setFound(false);
       hideBubble();
       setSpeakState('idle');
+      setContextState('idle');
       setRetryActive(false);
 
       // Unfreeze previous capture if any
@@ -738,6 +797,7 @@
 
       // Export as JPEG for reasonable payload size
       const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      lastImageDataUrl = imageDataUrl;
 
       // Create abort controller for this scan
       scanController = new AbortController();
@@ -769,8 +829,9 @@
         if (text && text.length > 1) {
           recognizedText = text;
           setFound(true);
-          showBubble(text.length > 200 ? text.substring(0, 200) + '\u2026' : text);
+          showBubbleWithWords(text);
           setSpeakState('active');
+          setContextState('active');
           sfxFound();
           spawnConfetti();
           document.getElementById('statusDot').className = 'status-dot ready';
@@ -808,6 +869,7 @@
       if (isSpeaking) {
         sfxCancel();
         cancelSpeech();
+        clearHighlights();
         setSpeakState('active');
         document.getElementById('statusDot').className = 'status-dot ready';
         return;
@@ -815,6 +877,9 @@
 
       // iOS requires cancel before new utterance
       window.speechSynthesis.cancel();
+
+      // Show the OCR text with word spans (in case context replaced it)
+      showBubbleWithWords(recognizedText);
 
       // Play speak sound
       sfxSpeak();
@@ -833,14 +898,22 @@
         setSpeakState('speaking');
         document.getElementById('statusDot').className = 'status-dot speaking';
 
+        utterance.onboundary = (event) => {
+          if (event.name === 'word') {
+            highlightWordAt(event.charIndex);
+          }
+        };
+
         utterance.onend = () => {
           isSpeaking = false;
+          clearHighlights();
           setSpeakState('active');
           document.getElementById('statusDot').className = 'status-dot ready';
         };
 
         utterance.onerror = () => {
           isSpeaking = false;
+          clearHighlights();
           setSpeakState('active');
           document.getElementById('statusDot').className = 'status-dot ready';
         };
@@ -859,9 +932,11 @@
       sfxRetry();
       cancelSpeech();
       recognizedText = '';
+      lastImageDataUrl = '';
       setFound(false);
       hideBubble();
       setSpeakState('idle');
+      setContextState('idle');
       setRetryActive(false);
       document.getElementById('statusDot').className = 'status-dot ready';
 
@@ -910,6 +985,156 @@
 
     function hideBubble() {
       document.getElementById('resultBubble').classList.remove('visible');
+    }
+
+    // ── Word-by-word highlighting helpers ─────────────────
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function showBubbleWithWords(text) {
+      const container = document.getElementById('resultText');
+      const wordPattern = /\S+/g;
+      let match;
+      let html = '';
+      let lastEnd = 0;
+
+      while ((match = wordPattern.exec(text)) !== null) {
+        if (match.index > lastEnd) {
+          html += escapeHtml(text.substring(lastEnd, match.index));
+        }
+        html += '<span class="word" data-start="' + match.index + '" data-end="' + (match.index + match[0].length) + '">' + escapeHtml(match[0]) + '</span>';
+        lastEnd = match.index + match[0].length;
+      }
+      if (lastEnd < text.length) {
+        html += escapeHtml(text.substring(lastEnd));
+      }
+
+      container.innerHTML = html;
+      document.getElementById('resultBubble').classList.add('visible');
+    }
+
+    function highlightWordAt(charIndex) {
+      clearHighlights();
+      const spans = document.querySelectorAll('.ac-dialog-text .word');
+      for (const span of spans) {
+        const start = parseInt(span.dataset.start);
+        const end   = parseInt(span.dataset.end);
+        if (charIndex >= start && charIndex < end) {
+          span.classList.add('highlight');
+          span.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          break;
+        }
+      }
+    }
+
+    function clearHighlights() {
+      document.querySelectorAll('.ac-dialog-text .word.highlight').forEach(el => el.classList.remove('highlight'));
+    }
+
+    // ── Context / Scene Explanation ───────────────────────
+    function setContextState(state) {
+      const btn = document.getElementById('contextBtn');
+      btn.className = 'btn btn-context';
+      if (state === 'active')  btn.classList.add('active');
+      if (state === 'loading') btn.classList.add('loading');
+    }
+
+    async function explainContext() {
+      if (!recognizedText || !lastImageDataUrl) return;
+
+      // If already loading, cancel
+      if (contextController) {
+        contextController.abort();
+        contextController = null;
+        setContextState('active');
+        showBubbleWithWords(recognizedText);
+        return;
+      }
+
+      // Cancel any ongoing speech
+      cancelSpeech();
+      clearHighlights();
+      setSpeakState('active');
+      document.getElementById('statusDot').className = 'status-dot ready';
+
+      // Show loading state
+      sfxContext();
+      setContextState('loading');
+      showBubble('\uD83C\uDF43 Thinking...');
+
+      contextController = new AbortController();
+
+      try {
+        const response = await fetch('/api/context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: lastImageDataUrl, text: recognizedText }),
+          signal: contextController.signal,
+        });
+
+        if (!response.ok) throw new Error('Context API error');
+
+        const data = await response.json();
+        const context = (data.context || '').trim();
+
+        setContextState('active');
+
+        if (context) {
+          // Show context with word spans and auto-speak it
+          showBubbleWithWords(context);
+
+          window.speechSynthesis.cancel();
+          sfxSpeak();
+
+          setTimeout(() => {
+            const utterance = new SpeechSynthesisUtterance(context);
+            utterance.rate   = 0.82;
+            utterance.pitch  = 1.05;
+            utterance.volume = 1.0;
+
+            const voice = pickVoice();
+            if (voice) utterance.voice = voice;
+
+            isSpeaking = true;
+            setSpeakState('speaking');
+            document.getElementById('statusDot').className = 'status-dot speaking';
+
+            utterance.onboundary = (event) => {
+              if (event.name === 'word') {
+                highlightWordAt(event.charIndex);
+              }
+            };
+
+            utterance.onend = () => {
+              isSpeaking = false;
+              clearHighlights();
+              setSpeakState('active');
+              document.getElementById('statusDot').className = 'status-dot ready';
+            };
+
+            utterance.onerror = () => {
+              isSpeaking = false;
+              clearHighlights();
+              setSpeakState('active');
+              document.getElementById('statusDot').className = 'status-dot ready';
+            };
+
+            window.speechSynthesis.speak(utterance);
+          }, 50);
+        } else {
+          showBubble('\uD83E\uDD14 Hmm, I\u2019m not sure what\u2019s happening here!');
+        }
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          contextController = null;
+          return;
+        }
+        setContextState('active');
+        showBubble('\uD83D\uDE05 Couldn\u2019t explain \u2014 try again!');
+      }
+
+      contextController = null;
     }
 
     // ── Confetti burst ──────────────────────────────────
