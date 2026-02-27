@@ -273,9 +273,25 @@
       position: relative;
       display: none;
       animation: pop-in 0.35s cubic-bezier(0.34,1.56,0.64,1);
-      background: url('dialogue-box.webp') center / 100% 100% no-repeat;
-      padding: 32px 34px 36px 34px;
-      min-height: 160px;
+      background: linear-gradient(170deg, #fffef8 0%, #fdf5e0 100%);
+      border: 5px solid #e8b830;
+      border-radius: 28px;
+      box-shadow:
+        0 0 0 2px #c49920,
+        0 4px 10px rgba(0,0,0,0.15);
+      padding: 22px 26px;
+    }
+
+    .ac-dialog::after {
+      content: '';
+      position: absolute;
+      bottom: 12px;
+      right: 20px;
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 10px solid #d4920a;
     }
 
     .ac-dialog.visible { display: flex; align-items: center; justify-content: center; }
@@ -287,7 +303,6 @@
       line-height: 1.5;
       text-align: center;
       width: 100%;
-      max-height: 200px;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
@@ -1233,6 +1248,8 @@
 
         const data = await response.json();
         const guide = (data.guide || '').trim();
+        console.log('[Guide] Full API response:', JSON.stringify(data));
+        console.log('[Guide] Guide text (' + guide.length + ' chars):', guide);
 
         setGuideState('active');
 

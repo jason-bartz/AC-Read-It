@@ -60,7 +60,7 @@ module.exports = async (req, res) => {
             ],
           },
         ],
-        max_tokens: 300,
+        max_tokens: 500,
         temperature: 0.7,
       }),
     });
@@ -76,8 +76,11 @@ module.exports = async (req, res) => {
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '';
+    const finishReason = data.choices?.[0]?.finish_reason || 'unknown';
 
-    return res.status(200).json({ guide: content.trim(), debug: { model: data.model } });
+    console.log('Guide response:', { finishReason, contentLength: content.length, content: content.substring(0, 200) });
+
+    return res.status(200).json({ guide: content.trim(), finish_reason: finishReason, debug: { model: data.model } });
   } catch (err) {
     console.error('Guide function error:', err);
     return res.status(500).json({
