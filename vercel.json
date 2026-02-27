@@ -5,6 +5,9 @@
     },
     "api/guide.js": {
       "maxDuration": 30
+    },
+    "api/detect-text.js": {
+      "maxDuration": 10
     }
   }
 }

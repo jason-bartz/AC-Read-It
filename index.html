@@ -266,6 +266,101 @@
       box-shadow: 0 3px 0 var(--green-dark);
     }
 
+    /* ─── COUNTDOWN OVERLAY ────────────────── */
+    .countdown-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(76, 175, 80, 0.15);
+      backdrop-filter: blur(1px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 4;
+      border-radius: 23px;
+    }
+
+    .countdown-overlay.visible {
+      opacity: 1;
+    }
+
+    .countdown-number {
+      font-family: 'Fredoka One', cursive;
+      font-size: 6rem;
+      color: var(--yellow);
+      text-shadow:
+        -3px -3px 0 var(--brown),
+         3px -3px 0 var(--brown),
+        -3px  3px 0 var(--brown),
+         3px  3px 0 var(--brown),
+         0   4px 0  #5a3518;
+      animation: countdown-pop 0.8s ease-out;
+    }
+
+    @keyframes countdown-pop {
+      0%   { transform: scale(1.6); opacity: 0; }
+      30%  { transform: scale(0.9); opacity: 1; }
+      50%  { transform: scale(1.05); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ─── AUTO-MODE TOGGLE ─────────────────── */
+    .auto-toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .auto-toggle.visible {
+      display: flex;
+    }
+
+    .auto-toggle-label {
+      font-family: 'Fredoka One', cursive;
+      font-size: 0.65rem;
+      color: rgba(255,255,255,0.8);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+
+    .auto-toggle-switch {
+      width: 38px;
+      height: 20px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 10px;
+      border: 2px solid rgba(255,255,255,0.3);
+      position: relative;
+      cursor: pointer;
+      transition: background 0.3s, border-color 0.3s;
+    }
+
+    .auto-toggle-switch.on {
+      background: var(--green-found);
+      border-color: #388e3c;
+    }
+
+    .auto-toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--white);
+      transition: transform 0.3s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    .auto-toggle-switch.on::after {
+      transform: translateX(18px);
+    }
+
     /* ─── AC DIALOG BOX ─────────────────────── */
     .ac-dialog {
       width: 100%;
@@ -342,9 +437,10 @@
       transition: background 0.3s, border-color 0.3s;
     }
 
-    .status-dot.ready    { background: var(--green-found); border-color: #388e3c; }
-    .status-dot.scanning { background: var(--yellow); border-color: var(--yellow-dark); animation: blink 0.5s ease-in-out infinite alternate; }
-    .status-dot.speaking { background: var(--orange); border-color: var(--orange-dark); }
+    .status-dot.ready     { background: var(--green-found); border-color: #388e3c; }
+    .status-dot.detecting { background: #81c784; border-color: #388e3c; animation: blink 1.5s ease-in-out infinite alternate; }
+    .status-dot.scanning  { background: var(--yellow); border-color: var(--yellow-dark); animation: blink 0.5s ease-in-out infinite alternate; }
+    .status-dot.speaking  { background: var(--orange); border-color: var(--orange-dark); }
 
     @keyframes blink {
       from { opacity: 1; }
@@ -591,6 +687,10 @@
   <!-- HEADER -->
   <div class="header">
     <span class="header-title">AC. Read It!</span>
+    <div class="auto-toggle" id="autoToggle">
+      <span class="auto-toggle-label">Auto</span>
+      <div class="auto-toggle-switch on" id="autoSwitch" onclick="toggleAutoMode()"></div>
+    </div>
   </div>
 
   <!-- CAMERA AREA -->
@@ -615,6 +715,11 @@
       <div class="scan-overlay" id="scanOverlay">
         <img class="scan-spinner" src="leaf.webp" alt="Loading">
         <div class="scan-label">Reading...</div>
+      </div>
+
+      <!-- Countdown overlay -->
+      <div class="countdown-overlay" id="countdownOverlay">
+        <div class="countdown-number" id="countdownNumber"></div>
       </div>
 
     </div>
@@ -731,6 +836,15 @@
     let contextController = null; // AbortController for in-flight context
     let guideController    = null; // AbortController for in-flight guide
 
+    // ── Auto-detect state ────────────────────────────────
+    let autoDetectEnabled   = true;
+    let detectTimer         = null;
+    let detectController    = null;
+    let countdownTimer      = null;
+    let isCountingDown      = false;
+    let detectCanvas        = null;  // reusable offscreen canvas
+    const DETECT_INTERVAL   = 2000;
+
     // ── Voice selection (priority order) ────────────────
     function pickVoice() {
       const voices = window.speechSynthesis.getVoices();
@@ -769,7 +883,18 @@
         video.srcObject = stream;
         video.style.display = 'block';
         document.getElementById('splash').style.display = 'none';
-        document.getElementById('statusDot').className = 'status-dot ready';
+
+        // Initialize auto-detect
+        autoDetectEnabled = localStorage.getItem('autoDetect') !== 'false';
+        updateAutoToggleUI();
+        document.getElementById('autoToggle').classList.add('visible');
+
+        if (autoDetectEnabled) {
+          document.getElementById('statusDot').className = 'status-dot detecting';
+          startDetectLoop();
+        } else {
+          document.getElementById('statusDot').className = 'status-dot ready';
+        }
 
       } catch (e) {
         document.getElementById('splash').querySelector('.splash-label').textContent =
@@ -797,6 +922,18 @@
     // ── Capture & OCR (via Vercel AI Gateway) ──────────
     async function captureAndScan() {
       unlockSpeech();
+
+      // Stop auto-detect and any countdown
+      stopDetectLoop();
+      cancelCountdown();
+
+      // If results are showing, clear and restart detection
+      // (retry() already restarts the detect loop if autoDetectEnabled)
+      if (recognizedText && !scanController) {
+        retry();
+        return;
+      }
+
       // If already scanning, cancel it
       if (scanController) {
         cancelScan();
@@ -915,6 +1052,8 @@
         } else {
           showBubble('\uD83E\uDD14 No words found \u2014 try again!');
           document.getElementById('statusDot').className = 'status-dot';
+          // Restart auto-detect after a pause
+          if (autoDetectEnabled) setTimeout(() => startDetectLoop(), 3000);
         }
 
       } catch (e) {
@@ -932,9 +1071,150 @@
         // Unfreeze on error too
         document.getElementById('canvas').classList.remove('frozen');
         video.style.display = 'block';
+
+        // Restart auto-detect after a pause
+        if (autoDetectEnabled) setTimeout(() => startDetectLoop(), 3000);
       }
 
       scanController = null;
+    }
+
+    // ── Auto-Detect Loop ─────────────────────────────────
+    function captureDetectThumbnail() {
+      const video = document.getElementById('video');
+      if (!video || !video.videoWidth) return null;
+      if (!detectCanvas) detectCanvas = document.createElement('canvas');
+      const scale = 480 / video.videoWidth;
+      detectCanvas.width = 480;
+      detectCanvas.height = Math.round(video.videoHeight * scale);
+      const ctx = detectCanvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, detectCanvas.width, detectCanvas.height);
+      return detectCanvas.toDataURL('image/jpeg', 0.5);
+    }
+
+    function startDetectLoop() {
+      if (!autoDetectEnabled) return;
+      stopDetectLoop();
+      document.getElementById('statusDot').className = 'status-dot detecting';
+      scheduleNextDetect(DETECT_INTERVAL);
+    }
+
+    function stopDetectLoop() {
+      if (detectTimer) { clearTimeout(detectTimer); detectTimer = null; }
+      if (detectController) { detectController.abort(); detectController = null; }
+    }
+
+    function scheduleNextDetect(delay) {
+      detectTimer = setTimeout(async () => {
+        await runDetection();
+        if (autoDetectEnabled && !isCountingDown && !scanController && !recognizedText) {
+          scheduleNextDetect(DETECT_INTERVAL);
+        }
+      }, delay);
+    }
+
+    async function runDetection() {
+      if (detectController || isCountingDown || scanController || recognizedText) return;
+      const thumbnail = captureDetectThumbnail();
+      if (!thumbnail) return;
+
+      detectController = new AbortController();
+      try {
+        const resp = await fetch('/api/detect-text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: thumbnail }),
+          signal: detectController.signal,
+        });
+        if (!resp.ok) throw new Error('detect error');
+        const data = await resp.json();
+        if (data.detected) {
+          console.log('[Auto-detect] Text detected, starting countdown');
+          startCountdown();
+        }
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        console.warn('[Auto-detect] Error:', e.message);
+      }
+      detectController = null;
+    }
+
+    // Pause/resume on visibility change
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopDetectLoop();
+      } else if (autoDetectEnabled && stream && !isCountingDown && !scanController && !recognizedText) {
+        startDetectLoop();
+      }
+    });
+
+    // ── Countdown ────────────────────────────────────────
+    function startCountdown() {
+      stopDetectLoop();
+      isCountingDown = true;
+      setFound(true);
+
+      const overlay = document.getElementById('countdownOverlay');
+      const numberEl = document.getElementById('countdownNumber');
+      overlay.classList.add('visible');
+
+      let count = 3;
+      showCountdownNumber(count);
+      sfxCountdownTick(count);
+
+      countdownTimer = setInterval(() => {
+        count--;
+        if (count > 0) {
+          showCountdownNumber(count);
+          sfxCountdownTick(count);
+        } else {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+          isCountingDown = false;
+          overlay.classList.remove('visible');
+          captureAndScan();
+        }
+      }, 1000);
+    }
+
+    function showCountdownNumber(n) {
+      const el = document.getElementById('countdownNumber');
+      el.textContent = n;
+      el.style.animation = 'none';
+      el.offsetHeight; // force reflow
+      el.style.animation = '';
+    }
+
+    function cancelCountdown() {
+      if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+      isCountingDown = false;
+      document.getElementById('countdownOverlay').classList.remove('visible');
+      setFound(false);
+    }
+
+    function sfxCountdownTick(n) {
+      const freqs = { 3: 523, 2: 659, 1: 784 };
+      playTone(freqs[n] || 523, 0.15, 'sine', 0.2);
+    }
+
+    // ── Auto-mode toggle ─────────────────────────────────
+    function toggleAutoMode() {
+      autoDetectEnabled = !autoDetectEnabled;
+      localStorage.setItem('autoDetect', autoDetectEnabled);
+      updateAutoToggleUI();
+      if (autoDetectEnabled) {
+        if (stream && !recognizedText && !scanController) startDetectLoop();
+      } else {
+        stopDetectLoop();
+        cancelCountdown();
+        setFound(false);
+        document.getElementById('statusDot').className = 'status-dot ready';
+      }
+    }
+
+    function updateAutoToggleUI() {
+      const sw = document.getElementById('autoSwitch');
+      if (sw) sw.classList.toggle('on', autoDetectEnabled);
     }
 
     // ── Speak ───────────────────────────────────────────
@@ -1030,6 +1310,9 @@
       // Unfreeze: show video, hide canvas
       document.getElementById('canvas').classList.remove('frozen');
       document.getElementById('video').style.display = 'block';
+
+      // Restart auto-detection
+      if (autoDetectEnabled) startDetectLoop();
     }
 
     // ── UI Helpers ──────────────────────────────────────
