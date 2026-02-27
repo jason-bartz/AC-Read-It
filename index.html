@@ -168,10 +168,10 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-end;
       gap: 16px;
       background: linear-gradient(160deg, #b8e6ef 0%, #d4f0d8 60%, #f0e8c0 100%);
-      padding: 20px;
+      padding: 20px 20px 30px;
     }
 
     .splash-animals {
@@ -573,9 +573,9 @@
 
       <!-- Splash / Start screen -->
       <div class="splash" id="splash">
-        <div class="splash-animals">🦝🐸🐰</div>
+        <div class="splash-animals"><img src="timmy.png" alt="Timmy" style="width:60px;height:60px;object-fit:contain"><img src="isabelle.png" alt="Isabelle" style="width:60px;height:60px;object-fit:contain"><img src="peanut.png" alt="Peanut" style="width:60px;height:60px;object-fit:contain"></div>
         <div class="splash-label">Point your camera<br>at the words!</div>
-        <button class="start-btn" id="startBtn" onclick="startCamera()">📷 Start!</button>
+        <button class="start-btn" id="startBtn" onclick="startCamera()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Start!</button>
       </div>
 
       <!-- Live video -->
@@ -601,9 +601,6 @@
 
   <!-- CONTROLS DOCK -->
   <div class="controls">
-    <button class="btn btn-retry" id="retryBtn" onclick="retry()">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3d6e8c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-    </button>
     <button class="btn btn-scan"  id="scanBtn"  onclick="captureAndScan()">
       <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
     </button>
@@ -751,7 +748,7 @@
       } catch (e) {
         document.getElementById('splash').querySelector('.splash-label').textContent =
           'Tap Allow Camera to get started!';
-        document.getElementById('startBtn').textContent = '📷 Try Again!';
+        document.getElementById('startBtn').innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Try Again!';
       }
     }
 
@@ -1045,7 +1042,9 @@
     }
 
     function setRetryActive(on) {
-      document.getElementById('retryBtn').classList.toggle('active', on);
+      const btn = document.getElementById('retryBtn');
+      if (!btn) return;
+      btn.classList.toggle('active', on);
     }
 
     function showBubble(text) {
@@ -1110,6 +1109,7 @@
     // ── Context / Scene Explanation ───────────────────────
     function setContextState(state) {
       const btn = document.getElementById('contextBtn');
+      if (!btn) return;
       btn.className = 'btn btn-context';
       if (state === 'active')  btn.classList.add('active');
       if (state === 'loading') btn.classList.add('loading');
