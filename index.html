@@ -884,17 +884,23 @@
         video.style.display = 'block';
         document.getElementById('splash').style.display = 'none';
 
-        // Initialize auto-detect
+        // Initialize auto-detect settings
         autoDetectEnabled = localStorage.getItem('autoDetect') !== 'false';
         updateAutoToggleUI();
         document.getElementById('autoToggle').classList.add('visible');
+        document.getElementById('statusDot').className = 'status-dot ready';
 
-        if (autoDetectEnabled) {
-          document.getElementById('statusDot').className = 'status-dot detecting';
-          startDetectLoop();
-        } else {
-          document.getElementById('statusDot').className = 'status-dot ready';
+        // Wait for video to actually start playing before starting detection
+        function initAutoDetect() {
+          if (autoDetectEnabled && !detectTimer && video.videoWidth > 0) {
+            console.log('[Camera] Starting auto-detect, videoWidth:', video.videoWidth);
+            document.getElementById('statusDot').className = 'status-dot detecting';
+            startDetectLoop();
+          }
         }
+        video.addEventListener('playing', initAutoDetect, { once: true });
+        // Fallback in case 'playing' already fired
+        setTimeout(initAutoDetect, 1500);
 
       } catch (e) {
         document.getElementById('splash').querySelector('.splash-label').textContent =
@@ -1106,18 +1112,29 @@
 
     function scheduleNextDetect(delay) {
       detectTimer = setTimeout(async () => {
+        detectTimer = null;
         await runDetection();
+        // Always reschedule as long as we should be detecting
         if (autoDetectEnabled && !isCountingDown && !scanController && !recognizedText) {
           scheduleNextDetect(DETECT_INTERVAL);
+        } else {
+          console.log('[Auto-detect] Loop paused (auto:', autoDetectEnabled, 'countdown:', isCountingDown, 'scanning:', !!scanController, 'hasText:', !!recognizedText, ')');
         }
       }, delay);
     }
 
     async function runDetection() {
-      if (detectController || isCountingDown || scanController || recognizedText) return;
+      if (detectController || isCountingDown || scanController || recognizedText) {
+        console.log('[Auto-detect] Skipped: busy');
+        return;
+      }
       const thumbnail = captureDetectThumbnail();
-      if (!thumbnail) return;
+      if (!thumbnail) {
+        console.log('[Auto-detect] Skipped: no thumbnail (video not ready)');
+        return;
+      }
 
+      console.log('[Auto-detect] Sending detection request...');
       detectController = new AbortController();
       try {
         const resp = await fetch('/api/detect-text', {
@@ -1126,10 +1143,15 @@
           body: JSON.stringify({ image: thumbnail }),
           signal: detectController.signal,
         });
-        if (!resp.ok) throw new Error('detect error');
+        if (!resp.ok) {
+          const errText = await resp.text().catch(() => '');
+          console.warn('[Auto-detect] API error:', resp.status, errText.substring(0, 200));
+          detectController = null;
+          return;
+        }
         const data = await resp.json();
+        console.log('[Auto-detect] Result:', data.detected ? 'TEXT FOUND' : 'no text');
         if (data.detected) {
-          console.log('[Auto-detect] Text detected, starting countdown');
           startCountdown();
         }
       } catch (e) {
