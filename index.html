@@ -266,100 +266,6 @@
       box-shadow: 0 3px 0 var(--green-dark);
     }
 
-    /* ─── COUNTDOWN OVERLAY ────────────────── */
-    .countdown-overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(76, 175, 80, 0.15);
-      backdrop-filter: blur(1px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s;
-      z-index: 4;
-      border-radius: 23px;
-    }
-
-    .countdown-overlay.visible {
-      opacity: 1;
-    }
-
-    .countdown-number {
-      font-family: 'Fredoka One', cursive;
-      font-size: 6rem;
-      color: var(--yellow);
-      text-shadow:
-        -3px -3px 0 var(--brown),
-         3px -3px 0 var(--brown),
-        -3px  3px 0 var(--brown),
-         3px  3px 0 var(--brown),
-         0   4px 0  #5a3518;
-      animation: countdown-pop 0.8s ease-out;
-    }
-
-    @keyframes countdown-pop {
-      0%   { transform: scale(1.6); opacity: 0; }
-      30%  { transform: scale(0.9); opacity: 1; }
-      50%  { transform: scale(1.05); }
-      100% { transform: scale(1); opacity: 1; }
-    }
-
-    /* ─── AUTO-MODE TOGGLE ─────────────────── */
-    .auto-toggle {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      display: none;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .auto-toggle.visible {
-      display: flex;
-    }
-
-    .auto-toggle-label {
-      font-family: 'Fredoka One', cursive;
-      font-size: 0.65rem;
-      color: rgba(255,255,255,0.8);
-      text-shadow: 0 1px 2px rgba(0,0,0,0.4);
-    }
-
-    .auto-toggle-switch {
-      width: 38px;
-      height: 20px;
-      background: rgba(0,0,0,0.3);
-      border-radius: 10px;
-      border: 2px solid rgba(255,255,255,0.3);
-      position: relative;
-      cursor: pointer;
-      transition: background 0.3s, border-color 0.3s;
-    }
-
-    .auto-toggle-switch.on {
-      background: var(--green-found);
-      border-color: #388e3c;
-    }
-
-    .auto-toggle-switch::after {
-      content: '';
-      position: absolute;
-      top: 1px;
-      left: 1px;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: var(--white);
-      transition: transform 0.3s;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    }
-
-    .auto-toggle-switch.on::after {
-      transform: translateX(18px);
-    }
 
     /* ─── AC DIALOG BOX ─────────────────────── */
     .ac-dialog {
@@ -438,7 +344,6 @@
     }
 
     .status-dot.ready     { background: var(--green-found); border-color: #388e3c; }
-    .status-dot.detecting { background: #81c784; border-color: #388e3c; animation: blink 1.5s ease-in-out infinite alternate; }
     .status-dot.scanning  { background: var(--yellow); border-color: var(--yellow-dark); animation: blink 0.5s ease-in-out infinite alternate; }
     .status-dot.speaking  { background: var(--orange); border-color: var(--orange-dark); }
 
@@ -687,10 +592,6 @@
   <!-- HEADER -->
   <div class="header">
     <span class="header-title">AC. Read It!</span>
-    <div class="auto-toggle" id="autoToggle">
-      <span class="auto-toggle-label">Auto</span>
-      <div class="auto-toggle-switch on" id="autoSwitch" onclick="toggleAutoMode()"></div>
-    </div>
   </div>
 
   <!-- CAMERA AREA -->
@@ -717,11 +618,6 @@
         <div class="scan-label">Reading...</div>
       </div>
 
-      <!-- Countdown overlay -->
-      <div class="countdown-overlay" id="countdownOverlay">
-        <div class="countdown-number" id="countdownNumber"></div>
-      </div>
-
     </div>
 
     <!-- AC Dialog Box (below camera) -->
@@ -732,12 +628,12 @@
 
   <!-- CONTROLS DOCK -->
   <div class="controls">
-    <button class="btn btn-scan"  id="scanBtn"  onclick="captureAndScan()">
-      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-    </button>
     <button class="btn btn-speak" id="speakBtn" onclick="speakText()">
       <div class="waves"></div>
       <svg class="megaphone-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.5 3 L18.5 21 L7 15 L7 9 Z"/><path d="M7 9 L3.5 9 C2.7 9 2 9.7 2 10.5 L2 13.5 C2 14.3 2.7 15 3.5 15 L7 15"/><path d="M18.5 6 C20.5 8 20.5 16 18.5 18"/><path d="M7 15 L8 20 L11 20 L10 15"/></svg>
+    </button>
+    <button class="btn btn-scan"  id="scanBtn"  onclick="captureAndScan()">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
     </button>
     <button class="btn btn-guide" id="guideBtn" onclick="explainGuide()">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5a3518" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8l4 4-4 4"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
@@ -833,17 +729,9 @@
     let isSpeaking       = false;
     let scanController   = null;  // AbortController for in-flight OCR
     let lastImageDataUrl = '';    // saved capture for context API
+    let sceneText        = '';    // full screen text (bells, buttons, etc.) for guide/context
     let contextController = null; // AbortController for in-flight context
     let guideController    = null; // AbortController for in-flight guide
-
-    // ── Auto-detect state ────────────────────────────────
-    let autoDetectEnabled   = true;
-    let detectTimer         = null;
-    let detectController    = null;
-    let countdownTimer      = null;
-    let isCountingDown      = false;
-    let detectCanvas        = null;  // reusable offscreen canvas
-    const DETECT_INTERVAL   = 2000;
 
     // ── Voice selection (priority order) ────────────────
     function pickVoice() {
@@ -884,23 +772,7 @@
         video.style.display = 'block';
         document.getElementById('splash').style.display = 'none';
 
-        // Initialize auto-detect settings
-        autoDetectEnabled = localStorage.getItem('autoDetect') !== 'false';
-        updateAutoToggleUI();
-        document.getElementById('autoToggle').classList.add('visible');
         document.getElementById('statusDot').className = 'status-dot ready';
-
-        // Wait for video to actually start playing before starting detection
-        function initAutoDetect() {
-          if (autoDetectEnabled && !detectTimer && video.videoWidth > 0) {
-            console.log('[Camera] Starting auto-detect, videoWidth:', video.videoWidth);
-            document.getElementById('statusDot').className = 'status-dot detecting';
-            startDetectLoop();
-          }
-        }
-        video.addEventListener('playing', initAutoDetect, { once: true });
-        // Fallback in case 'playing' already fired
-        setTimeout(initAutoDetect, 1500);
 
       } catch (e) {
         document.getElementById('splash').querySelector('.splash-label').textContent =
@@ -929,12 +801,7 @@
     async function captureAndScan() {
       unlockSpeech();
 
-      // Stop auto-detect and any countdown
-      stopDetectLoop();
-      cancelCountdown();
-
-      // If results are showing, clear and restart detection
-      // (retry() already restarts the detect loop if autoDetectEnabled)
+      // If results are showing, clear and retake
       if (recognizedText && !scanController) {
         retry();
         return;
@@ -958,6 +825,7 @@
       recognizedText = '';
       displayedText = '';
       lastImageDataUrl = '';
+      sceneText = '';
       hasAutoRead = false;
       setFound(false);
       hideBubble();
@@ -1031,6 +899,7 @@
 
         const data = await response.json();
         const text = (data.text || '').replace(/\s+/g, ' ').trim();
+        sceneText = (data.scene || text).replace(/\s+/g, ' ').trim();
         // Debug: log raw response
         console.log('OCR response:', JSON.stringify(data));
 
@@ -1053,13 +922,11 @@
           document.getElementById('statusDot').className = 'status-dot ready';
 
           // Auto-read: speak the text after a brief delay for the success jingle
-          setTimeout(() => speakText(true), 500);
+          setTimeout(() => speakText(true), 250);
           setRetryActive(true);
         } else {
           showBubble('\uD83E\uDD14 No words found \u2014 try again!');
           document.getElementById('statusDot').className = 'status-dot';
-          // Restart auto-detect after a pause
-          if (autoDetectEnabled) setTimeout(() => startDetectLoop(), 3000);
         }
 
       } catch (e) {
@@ -1077,166 +944,9 @@
         // Unfreeze on error too
         document.getElementById('canvas').classList.remove('frozen');
         video.style.display = 'block';
-
-        // Restart auto-detect after a pause
-        if (autoDetectEnabled) setTimeout(() => startDetectLoop(), 3000);
       }
 
       scanController = null;
-    }
-
-    // ── Auto-Detect Loop ─────────────────────────────────
-    function captureDetectThumbnail() {
-      const video = document.getElementById('video');
-      if (!video || !video.videoWidth) return null;
-      if (!detectCanvas) detectCanvas = document.createElement('canvas');
-      const scale = 480 / video.videoWidth;
-      detectCanvas.width = 480;
-      detectCanvas.height = Math.round(video.videoHeight * scale);
-      const ctx = detectCanvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, detectCanvas.width, detectCanvas.height);
-      return detectCanvas.toDataURL('image/jpeg', 0.5);
-    }
-
-    function startDetectLoop() {
-      if (!autoDetectEnabled) return;
-      stopDetectLoop();
-      document.getElementById('statusDot').className = 'status-dot detecting';
-      scheduleNextDetect(DETECT_INTERVAL);
-    }
-
-    function stopDetectLoop() {
-      if (detectTimer) { clearTimeout(detectTimer); detectTimer = null; }
-      if (detectController) { detectController.abort(); detectController = null; }
-    }
-
-    function scheduleNextDetect(delay) {
-      detectTimer = setTimeout(async () => {
-        detectTimer = null;
-        await runDetection();
-        // Always reschedule as long as we should be detecting
-        if (autoDetectEnabled && !isCountingDown && !scanController && !recognizedText) {
-          scheduleNextDetect(DETECT_INTERVAL);
-        } else {
-          console.log('[Auto-detect] Loop paused (auto:', autoDetectEnabled, 'countdown:', isCountingDown, 'scanning:', !!scanController, 'hasText:', !!recognizedText, ')');
-        }
-      }, delay);
-    }
-
-    async function runDetection() {
-      if (detectController || isCountingDown || scanController || recognizedText) {
-        console.log('[Auto-detect] Skipped: busy');
-        return;
-      }
-      const thumbnail = captureDetectThumbnail();
-      if (!thumbnail) {
-        console.log('[Auto-detect] Skipped: no thumbnail (video not ready)');
-        return;
-      }
-
-      console.log('[Auto-detect] Sending detection request...');
-      detectController = new AbortController();
-      try {
-        const resp = await fetch('/api/detect-text', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: thumbnail }),
-          signal: detectController.signal,
-        });
-        if (!resp.ok) {
-          const errText = await resp.text().catch(() => '');
-          console.warn('[Auto-detect] API error:', resp.status, errText.substring(0, 200));
-          detectController = null;
-          return;
-        }
-        const data = await resp.json();
-        console.log('[Auto-detect] Result:', data.detected ? 'TEXT FOUND' : 'no text');
-        if (data.detected) {
-          startCountdown();
-        }
-      } catch (e) {
-        if (e.name === 'AbortError') return;
-        console.warn('[Auto-detect] Error:', e.message);
-      }
-      detectController = null;
-    }
-
-    // Pause/resume on visibility change
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        stopDetectLoop();
-      } else if (autoDetectEnabled && stream && !isCountingDown && !scanController && !recognizedText) {
-        startDetectLoop();
-      }
-    });
-
-    // ── Countdown ────────────────────────────────────────
-    function startCountdown() {
-      stopDetectLoop();
-      isCountingDown = true;
-      setFound(true);
-
-      const overlay = document.getElementById('countdownOverlay');
-      const numberEl = document.getElementById('countdownNumber');
-      overlay.classList.add('visible');
-
-      let count = 3;
-      showCountdownNumber(count);
-      sfxCountdownTick(count);
-
-      countdownTimer = setInterval(() => {
-        count--;
-        if (count > 0) {
-          showCountdownNumber(count);
-          sfxCountdownTick(count);
-        } else {
-          clearInterval(countdownTimer);
-          countdownTimer = null;
-          isCountingDown = false;
-          overlay.classList.remove('visible');
-          captureAndScan();
-        }
-      }, 1000);
-    }
-
-    function showCountdownNumber(n) {
-      const el = document.getElementById('countdownNumber');
-      el.textContent = n;
-      el.style.animation = 'none';
-      el.offsetHeight; // force reflow
-      el.style.animation = '';
-    }
-
-    function cancelCountdown() {
-      if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
-      isCountingDown = false;
-      document.getElementById('countdownOverlay').classList.remove('visible');
-      setFound(false);
-    }
-
-    function sfxCountdownTick(n) {
-      const freqs = { 3: 523, 2: 659, 1: 784 };
-      playTone(freqs[n] || 523, 0.15, 'sine', 0.2);
-    }
-
-    // ── Auto-mode toggle ─────────────────────────────────
-    function toggleAutoMode() {
-      autoDetectEnabled = !autoDetectEnabled;
-      localStorage.setItem('autoDetect', autoDetectEnabled);
-      updateAutoToggleUI();
-      if (autoDetectEnabled) {
-        if (stream && !recognizedText && !scanController) startDetectLoop();
-      } else {
-        stopDetectLoop();
-        cancelCountdown();
-        setFound(false);
-        document.getElementById('statusDot').className = 'status-dot ready';
-      }
-    }
-
-    function updateAutoToggleUI() {
-      const sw = document.getElementById('autoSwitch');
-      if (sw) sw.classList.toggle('on', autoDetectEnabled);
     }
 
     // ── Speak ───────────────────────────────────────────
@@ -1264,7 +974,7 @@
 
       const startSpeaking = () => {
         const utterance = new SpeechSynthesisUtterance(displayedText);
-        utterance.rate   = 0.82;
+        utterance.rate   = 1.05;
         utterance.pitch  = 1.05;
         utterance.volume = 1.0;
 
@@ -1320,6 +1030,7 @@
       recognizedText = '';
       displayedText = '';
       lastImageDataUrl = '';
+      sceneText = '';
       hasAutoRead = false;
       setFound(false);
       hideBubble();
@@ -1332,9 +1043,6 @@
       // Unfreeze: show video, hide canvas
       document.getElementById('canvas').classList.remove('frozen');
       document.getElementById('video').style.display = 'block';
-
-      // Restart auto-detection
-      if (autoDetectEnabled) startDetectLoop();
     }
 
     // ── UI Helpers ──────────────────────────────────────
@@ -1475,7 +1183,7 @@
         const response = await fetch('/api/context', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: lastImageDataUrl, text: recognizedText }),
+          body: JSON.stringify({ image: lastImageDataUrl, text: sceneText || recognizedText }),
           signal: contextController.signal,
         });
 
@@ -1545,7 +1253,7 @@
         const response = await fetch('/api/guide', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: lastImageDataUrl, text: recognizedText }),
+          body: JSON.stringify({ image: lastImageDataUrl, text: sceneText || recognizedText }),
           signal: guideController.signal,
         });
 
@@ -1560,7 +1268,7 @@
 
         if (guide) {
           displayedText = guide;
-          showBubbleWithWords(guide + '\n\n[DEBUG: ' + guide.length + ' chars | finish: ' + finishReason + ']');
+          showBubbleWithWords(guide);
           setSpeakState('active');
           // Auto-read the guide response
           setTimeout(() => speakText(true), 300);
