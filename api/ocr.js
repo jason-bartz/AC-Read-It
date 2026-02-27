@@ -7,10 +7,10 @@ You must respond with valid JSON in this exact format:
 {"dialogue":"<speaker and their dialogue only>","scene":"<everything visible on screen>"}
 
 RULES FOR "dialogue":
-- Extract ONLY the character dialogue text from the dialogue box
-- If a character name label is visible, put it first followed by a colon, then their dialogue
-- Do NOT include bell counts, button labels, menu options, item names, HUD elements, or any non-dialogue text
-- If no dialogue is visible, use an empty string
+- PRIORITY 1: If a character dialogue box is visible, extract the speaker name followed by a colon and their dialogue (e.g. "Tom Nook: Welcome!")
+- PRIORITY 2: If NO character dialogue is visible but an item name or label is shown (e.g. selected inventory item, focused object, item description), extract JUST the item name (e.g. "fishing rod", "shovel", "Fire Flower")
+- Do NOT include bell counts, button labels, menu options (Wear, Hold, Quit, Display, etc.), or HUD elements in dialogue
+- If truly no primary text or item label is visible, use an empty string
 
 RULES FOR "scene":
 - Include ALL visible text: dialogue, bell counts, button labels (Done, Sell, Cancel, etc.), menu options, item names, HUD elements, inventory counts, and any other on-screen text
@@ -56,7 +56,7 @@ module.exports = async (req, res) => {
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'Extract text from this Animal Crossing game screen. Return JSON with "dialogue" (speaker name and what they are saying only) and "scene" (all visible text including buttons, bells, menus, etc.).' },
+              { type: 'text', text: 'Extract text from this Animal Crossing game screen. Return JSON with "dialogue" (character dialogue, OR the item/label name if no dialogue is visible) and "scene" (all visible text including buttons, bells, menus, etc.).' },
               {
                 type: 'image_url',
                 image_url: { url: imageUrl },
