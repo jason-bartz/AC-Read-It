@@ -232,7 +232,8 @@
     }
 
     .scan-spinner {
-      font-size: 3.5rem;
+      width: 56px;
+      height: 56px;
       animation: spin 0.9s linear infinite;
       filter: drop-shadow(0 0 12px rgba(100,200,100,0.8));
     }
@@ -260,13 +261,8 @@
       position: relative;
       display: none;
       animation: pop-in 0.35s cubic-bezier(0.34,1.56,0.64,1);
-      background: #fffbe8;
-      border: 4px solid #e8b830;
-      border-radius: 28px;
-      box-shadow:
-        0 0 0 3px #c89820,
-        0 4px 8px rgba(0,0,0,0.15);
-      padding: 16px 20px;
+      background: url('dialogue box.webp') center / 100% 100% no-repeat;
+      padding: 28px 40px 30px 44px;
       height: 150px;
       overflow: hidden;
     }
@@ -298,23 +294,7 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.15);
     }
 
-    /* Advance arrow */
-    .ac-dialog-arrow {
-      position: absolute;
-      bottom: 12px;
-      right: 18px;
-      width: 0;
-      height: 0;
-      border-left: 6px solid transparent;
-      border-right: 6px solid transparent;
-      border-top: 7px solid var(--brown-light);
-      animation: bounce-arrow 1s ease-in-out infinite;
-    }
-
-    @keyframes bounce-arrow {
-      0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(3px); }
-    }
+    /* Arrow is built into the dialogue box image */
 
     @keyframes pop-in {
       from { transform: scale(0.85); opacity: 0; }
@@ -572,7 +552,7 @@
 
       <!-- Scanning overlay -->
       <div class="scan-overlay" id="scanOverlay">
-        <div class="scan-spinner">🍃</div>
+        <img class="scan-spinner" src="leaf.webp" alt="Loading">
         <div class="scan-label">Reading...</div>
       </div>
 
@@ -581,7 +561,6 @@
     <!-- AC Dialog Box (below camera) -->
     <div class="ac-dialog" id="resultBubble">
       <div class="ac-dialog-text" id="resultText"></div>
-      <div class="ac-dialog-arrow"></div>
     </div>
   </div>
 
@@ -996,6 +975,11 @@
       document.getElementById('resultBubble').classList.add('visible');
     }
 
+    function showBubbleHTML(html) {
+      document.getElementById('resultText').innerHTML = html;
+      document.getElementById('resultBubble').classList.add('visible');
+    }
+
     function hideBubble() {
       document.getElementById('resultBubble').classList.remove('visible');
     }
@@ -1074,7 +1058,7 @@
       // Show loading state
       sfxContext();
       setContextState('loading');
-      showBubble('\uD83C\uDF43 Thinking...');
+      showBubbleHTML('<img src="leaf.webp" style="width:20px;height:20px;vertical-align:middle;animation:spin 0.9s linear infinite"> Thinking...');
 
       contextController = new AbortController();
 
