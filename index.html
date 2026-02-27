@@ -872,6 +872,7 @@
         sy = Math.round((videoH - sh) / 2);
       }
 
+      // Draw full-res crop for the frozen preview
       canvas.width = sw;
       canvas.height = sh;
       const ctx = canvas.getContext('2d');
@@ -881,8 +882,17 @@
       video.style.display = 'none';
       canvas.classList.add('frozen');
 
-      // Export as JPEG for reasonable payload size
-      const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      // Downscale for OCR — 640px wide is plenty for reading text
+      const OCR_MAX_W = 640;
+      const scale = Math.min(1, OCR_MAX_W / sw);
+      const ocrW = Math.round(sw * scale);
+      const ocrH = Math.round(sh * scale);
+      const ocrCanvas = document.createElement('canvas');
+      ocrCanvas.width = ocrW;
+      ocrCanvas.height = ocrH;
+      ocrCanvas.getContext('2d').drawImage(canvas, 0, 0, ocrW, ocrH);
+
+      const imageDataUrl = ocrCanvas.toDataURL('image/jpeg', 0.7);
       lastImageDataUrl = imageDataUrl;
 
       // Create abort controller for this scan
