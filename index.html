@@ -947,12 +947,6 @@
     async function captureAndScan() {
       unlockSpeech();
 
-      // If results are showing, clear and retake
-      if (recognizedText && !scanController) {
-        retry();
-        return;
-      }
-
       // If already scanning, cancel it
       if (scanController) {
         cancelScan();
@@ -1077,8 +1071,8 @@
           spawnConfetti();
           document.getElementById('statusDot').className = 'status-dot ready';
 
-          // Auto-read: speak the text after a brief delay for the success jingle
-          setTimeout(() => speakText(true), 250);
+          // Auto-read: delay lets sfxFound jingle (~500ms) finish before character voice
+          setTimeout(() => speakText(true), 600);
           setRetryActive(true);
         } else {
           showBubble('\uD83E\uDD14 No words found \u2014 try again!');
