@@ -262,12 +262,12 @@
       display: none;
       animation: pop-in 0.35s cubic-bezier(0.34,1.56,0.64,1);
       background: url('dialogue-box.webp') center / 100% 100% no-repeat;
-      padding: 18px 26px 20px 30px;
-      height: 200px;
+      padding: 32px 34px 36px 34px;
+      min-height: 160px;
       overflow: hidden;
     }
 
-    .ac-dialog.visible { display: block; }
+    .ac-dialog.visible { display: flex; align-items: center; justify-content: center; }
 
     .ac-dialog-text {
       font-size: 1rem;
@@ -275,7 +275,8 @@
       color: var(--text);
       line-height: 1.5;
       text-align: center;
-      height: 100%;
+      width: 100%;
+      max-height: 100%;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
@@ -612,9 +613,6 @@
     </button>
     <button class="btn btn-guide" id="guideBtn" onclick="explainGuide()">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5a3518" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8l4 4-4 4"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-    </button>
-    <button class="btn btn-context" id="contextBtn" onclick="explainContext()">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5a3518" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     </button>
   </div>
 
