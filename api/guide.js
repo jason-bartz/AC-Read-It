@@ -16,7 +16,9 @@ RULES:
 - If a character is asking a question, explain what they're asking and what to answer
 - If it's a shop menu, explain what each item is for and how much it costs in simple terms
 - Do NOT just describe what's on screen — tell them what to DO next
-- Do NOT repeat the text — give actionable guidance`;
+- Do NOT repeat the text — give actionable guidance
+- ALWAYS finish your sentences completely. Never stop mid-sentence.
+- Your entire response must be plain text with no markdown formatting`;
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {

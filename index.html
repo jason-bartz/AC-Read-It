@@ -1248,14 +1248,14 @@
 
         const data = await response.json();
         const guide = (data.guide || '').trim();
-        console.log('[Guide] Full API response:', JSON.stringify(data));
-        console.log('[Guide] Guide text (' + guide.length + ' chars):', guide);
+        const finishReason = data.finish_reason || 'unknown';
+        console.log('[Guide] finish_reason:', finishReason, '| chars:', guide.length, '| text:', guide);
 
         setGuideState('active');
 
         if (guide) {
           displayedText = guide;
-          showBubbleWithWords(guide);
+          showBubbleWithWords(guide + '\n\n[DEBUG: ' + guide.length + ' chars | finish: ' + finishReason + ']');
           setSpeakState('active');
           // Auto-read the guide response
           setTimeout(() => speakText(true), 300);
