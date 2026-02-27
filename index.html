@@ -328,11 +328,11 @@
     .controls {
       background: linear-gradient(180deg, rgba(245,239,213,0.92) 0%, rgba(232,223,192,0.95) 100%);
       border-top: 4px solid var(--brown-light);
-      padding: 10px 24px 16px;
+      padding: 10px 14px 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 16px;
+      gap: 12px;
       flex-shrink: 0;
     }
 
@@ -483,6 +483,40 @@
       box-shadow: 0 2px 0 #b07898;
     }
 
+    /* ─── GUIDE BUTTON ─────────────────────── */
+    .btn-guide {
+      width: 60px;
+      height: 60px;
+      background: var(--gray);
+      border: 4px solid var(--gray-dark);
+      box-shadow: 0 5px 0 var(--gray-dark);
+      font-size: 1.7rem;
+      opacity: 0.4;
+      pointer-events: none;
+      transition: background 0.3s, border-color 0.3s, box-shadow 0.3s, opacity 0.3s, transform 0.08s;
+    }
+
+    .btn-guide.active {
+      background: #f0a870;
+      border-color: #b87840;
+      box-shadow: 0 5px 0 #b87840;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .btn-guide.loading {
+      background: #f0a870;
+      border-color: #b87840;
+      box-shadow: 0 5px 0 #b87840;
+      opacity: 1;
+      pointer-events: auto;
+      animation: blink 0.5s ease-in-out infinite alternate;
+    }
+
+    .btn-guide:active.active {
+      box-shadow: 0 2px 0 #b87840;
+    }
+
     /* SVG icon styling */
     .btn svg {
       display: block;
@@ -576,6 +610,9 @@
       <div class="waves"></div>
       <svg class="megaphone-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.5 3 L18.5 21 L7 15 L7 9 Z"/><path d="M7 9 L3.5 9 C2.7 9 2 9.7 2 10.5 L2 13.5 C2 14.3 2.7 15 3.5 15 L7 15"/><path d="M18.5 6 C20.5 8 20.5 16 18.5 18"/><path d="M7 15 L8 20 L11 20 L10 15"/></svg>
     </button>
+    <button class="btn btn-guide" id="guideBtn" onclick="explainGuide()">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5a3518" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8l4 4-4 4"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    </button>
     <button class="btn btn-context" id="contextBtn" onclick="explainContext()">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5a3518" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     </button>
@@ -645,6 +682,13 @@
       setTimeout(() => playTone(784, 0.15, 'sine', 0.2), 100);
     }
 
+    // Guide — bright ascending three-note (like getting a tip)
+    function sfxGuide() {
+      playTone(698, 0.1, 'sine', 0.2);
+      setTimeout(() => playTone(880, 0.1, 'sine', 0.22), 90);
+      setTimeout(() => playTone(1047, 0.15, 'sine', 0.2), 180);
+    }
+
     // ── State ────────────────────────────────────────────
     let stream           = null;
     let recognizedText   = '';
@@ -653,6 +697,7 @@
     let scanController   = null;  // AbortController for in-flight OCR
     let lastImageDataUrl = '';    // saved capture for context API
     let contextController = null; // AbortController for in-flight context
+    let guideController    = null; // AbortController for in-flight guide
 
     // ── Voice selection (priority order) ────────────────
     function pickVoice() {
@@ -736,10 +781,12 @@
       recognizedText = '';
       displayedText = '';
       lastImageDataUrl = '';
+      hasAutoRead = false;
       setFound(false);
       hideBubble();
       setSpeakState('idle');
       setContextState('idle');
+      setGuideState('idle');
       setRetryActive(false);
 
       // Unfreeze previous capture if any
@@ -823,9 +870,14 @@
           showBubbleWithWords(text);
           setSpeakState('active');
           setContextState('active');
+          setGuideState('active');
           sfxFound();
           spawnConfetti();
           document.getElementById('statusDot').className = 'status-dot ready';
+
+          // Auto-read: speak the text after a brief delay for the success jingle
+          setTimeout(() => speakText(), 500);
+          setRetryActive(true);
         } else {
           showBubble('\uD83E\uDD14 No words found \u2014 try again!');
           document.getElementById('statusDot').className = 'status-dot';
@@ -849,7 +901,6 @@
       }
 
       scanController = null;
-      setRetryActive(false);
     }
 
     // ── Speak ───────────────────────────────────────────
@@ -897,8 +948,9 @@
 
         utterance.onend = () => {
           isSpeaking = false;
+          hasAutoRead = true;
           clearHighlights();
-          setSpeakState('active');
+          setSpeakState('active');  // will now show replay icon
           document.getElementById('statusDot').className = 'status-dot ready';
         };
 
@@ -925,10 +977,12 @@
       recognizedText = '';
       displayedText = '';
       lastImageDataUrl = '';
+      hasAutoRead = false;
       setFound(false);
       hideBubble();
       setSpeakState('idle');
       setContextState('idle');
+      setGuideState('idle');
       setRetryActive(false);
       document.getElementById('statusDot').className = 'status-dot ready';
 
@@ -956,14 +1010,20 @@
     }
 
     const megaphoneSVG = '<svg class="megaphone-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.5 3 L18.5 21 L7 15 L7 9 Z"/><path d="M7 9 L3.5 9 C2.7 9 2 9.7 2 10.5 L2 13.5 C2 14.3 2.7 15 3.5 15 L7 15"/><path d="M18.5 6 C20.5 8 20.5 16 18.5 18"/><path d="M7 15 L8 20 L11 20 L10 15"/></svg>';
+    const replaySVG = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>';
     const stopSVG = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>';
+    let hasAutoRead = false; // tracks if text has been read at least once
 
     function setSpeakState(state) {
       const btn = document.getElementById('speakBtn');
       btn.className = 'btn btn-speak';
       if (state === 'active')   btn.classList.add('active');
       if (state === 'speaking') btn.classList.add('speaking');
-      btn.innerHTML = '<div class="waves"></div>' + (state === 'speaking' ? stopSVG : megaphoneSVG);
+      // After first read, show replay icon instead of megaphone
+      let icon = megaphoneSVG;
+      if (state === 'speaking') icon = stopSVG;
+      else if (state === 'active' && hasAutoRead) icon = replaySVG;
+      btn.innerHTML = '<div class="waves"></div>' + icon;
     }
 
     function setRetryActive(on) {
@@ -1082,6 +1142,8 @@
           displayedText = context;
           showBubbleWithWords(context);
           setSpeakState('active');
+          // Auto-read the context explanation
+          setTimeout(() => speakText(), 300);
         } else {
           showBubble('\uD83E\uDD14 Hmm, I\u2019m not sure what\u2019s happening here!');
         }
@@ -1095,6 +1157,75 @@
       }
 
       contextController = null;
+    }
+
+    // ── Guide / "What do I do?" ──────────────────────────
+    function setGuideState(state) {
+      const btn = document.getElementById('guideBtn');
+      btn.className = 'btn btn-guide';
+      if (state === 'active')  btn.classList.add('active');
+      if (state === 'loading') btn.classList.add('loading');
+    }
+
+    async function explainGuide() {
+      if (!recognizedText || !lastImageDataUrl) return;
+
+      // If already loading, cancel
+      if (guideController) {
+        guideController.abort();
+        guideController = null;
+        setGuideState('active');
+        showBubbleWithWords(recognizedText);
+        return;
+      }
+
+      // Cancel any ongoing speech
+      cancelSpeech();
+      clearHighlights();
+      setSpeakState('active');
+      document.getElementById('statusDot').className = 'status-dot ready';
+
+      // Show loading state
+      sfxGuide();
+      setGuideState('loading');
+      showBubbleHTML('<img src="leaf.webp" style="width:20px;height:20px;vertical-align:middle;animation:spin 0.9s linear infinite"> Thinking...');
+
+      guideController = new AbortController();
+
+      try {
+        const response = await fetch('/api/guide', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: lastImageDataUrl, text: recognizedText }),
+          signal: guideController.signal,
+        });
+
+        if (!response.ok) throw new Error('Guide API error');
+
+        const data = await response.json();
+        const guide = (data.guide || '').trim();
+
+        setGuideState('active');
+
+        if (guide) {
+          displayedText = guide;
+          showBubbleWithWords(guide);
+          setSpeakState('active');
+          // Auto-read the guide response
+          setTimeout(() => speakText(), 300);
+        } else {
+          showBubble('\u{1F914} Hmm, I\u2019m not sure what to do here!');
+        }
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          guideController = null;
+          return;
+        }
+        setGuideState('active');
+        showBubble('\u{1F605} Couldn\u2019t figure it out \u2014 try again!');
+      }
+
+      guideController = null;
     }
 
     // ── Confetti burst ──────────────────────────────────
